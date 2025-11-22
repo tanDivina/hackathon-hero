@@ -367,6 +367,7 @@ function HackathonWizard() {
               projectId={currentProject?.id}
               onAskQuestion={handleChatWithRules}
               isPro={isPro}
+              hasRules={hasRules}
               onUpgradeClick={() => setShowProModal(true)}
             />
             <HackathonTimer

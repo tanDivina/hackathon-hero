@@ -14,6 +14,7 @@ interface RulesChatProps {
   projectId?: string;
   onAskQuestion: (question: string, rulesContext: string) => Promise<string>;
   isPro: boolean;
+  hasRules: boolean;
   onUpgradeClick: () => void;
 }
 
@@ -28,6 +29,7 @@ export const RulesChat: React.FC<RulesChatProps> = ({
   projectId,
   onAskQuestion,
   isPro,
+  hasRules,
   onUpgradeClick
 }) => {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -162,7 +164,7 @@ PARSED KEY INFORMATION:
         <div className="text-center py-8 text-gray-500 font-mono">
           Select or create a project to start chatting
         </div>
-      ) : !rulesContext ? (
+      ) : !hasRules ? (
         <div className="text-center py-8 text-gray-500 font-mono">
           Parse hackathon rules first to enable chat
         </div>
