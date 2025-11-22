@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../../lib/supabase';
+import { databaseService } from '../../services/database';
 import { Eye, EyeOff, Mail, Lock, User } from 'lucide-react';
 
 interface SignupFormProps {
@@ -45,6 +46,8 @@ export function SignupForm({ onSuccess, onSwitchToLogin }: SignupFormProps) {
       if (error) {
         setError(error.message);
       } else {
+        // Automatically enable beta access for new signups
+        await databaseService.enableTestMode();
         onSuccess?.();
       }
     } catch (err) {

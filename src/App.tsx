@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Lock, Crown, Save } from 'lucide-react';
+import { Lock, Save } from 'lucide-react';
 import { RulesParser } from './components/RulesParser';
 import { IdeaGenerator } from './components/IdeaGenerator';
 import { PromptOptimizer } from './components/PromptOptimizer';
@@ -7,6 +7,7 @@ import { PitchScript } from './components/PitchScript';
 import { VideoCreator } from './components/VideoCreator';
 import { HackathonTimer } from './components/HackathonTimer';
 import { ProModal } from './components/ProModal';
+import { ProDropdown } from './components/ProDropdown';
 import { ProjectSelector } from './components/ProjectSelector';
 import { ExportDropdown, ExportFormat } from './components/ExportDropdown';
 import { RulesChat } from './components/RulesChat';
@@ -304,26 +305,17 @@ function HackathonWizard() {
                   SAVING...
                 </span>
               )}
-              <button
-                onClick={() => isPro ? navigate('/profile') : setShowProModal(true)}
-                className={`px-6 py-2.5 text-sm font-bold tracking-wide transition-all rounded ${
-                  isPro
-                    ? 'bg-accent-yellow text-black hover:bg-yellow-300'
-                    : 'border border-gray-700 text-gray-400 hover:border-gray-500 hover:text-white'
-                }`}
-              >
-                {isPro ? (
-                  <span className="flex items-center gap-2">
-                    <Crown size={16} />
-                    PRO ACTIVE
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-2">
-                    <Lock size={16} />
-                    UNLOCK PRO
-                  </span>
-                )}
-              </button>
+              {isPro ? (
+                <ProDropdown />
+              ) : (
+                <button
+                  onClick={() => setShowProModal(true)}
+                  className="px-6 py-2.5 text-sm font-bold tracking-wide transition-all rounded border border-gray-700 text-gray-400 hover:border-gray-500 hover:text-white flex items-center gap-2"
+                >
+                  <Lock size={16} />
+                  UNLOCK PRO
+                </button>
+              )}
             </div>
           </div>
 
