@@ -20,22 +20,14 @@ interface IdeaGeneratorProps {
 export const IdeaGenerator: React.FC<IdeaGeneratorProps> = ({ onGenerate, hasRules, projectId, onSendToOptimizer }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedIdea, setGeneratedIdea] = useState<GeneratedIdea | null>(null);
-  const [lastLoadedProjectId, setLastLoadedProjectId] = useState<string | undefined>();
 
   useEffect(() => {
-    // Only load from database if project changed
-    if (projectId !== lastLoadedProjectId) {
-      if (projectId) {
-        loadSavedIdea();
-        setLastLoadedProjectId(projectId);
-      } else {
-        setGeneratedIdea(null);
-        setLastLoadedProjectId(undefined);
-      }
-    }
+    loadSavedIdea();
   }, [projectId]);
 
   const loadSavedIdea = async () => {
+    setGeneratedIdea(null);
+
     if (!projectId) return;
 
     const saved = await databaseService.getIdea(projectId);
@@ -46,8 +38,6 @@ export const IdeaGenerator: React.FC<IdeaGeneratorProps> = ({ onGenerate, hasRul
         reasoning: saved.reasoning,
         sponsorAlignment: saved.sponsor_alignment,
       });
-    } else {
-      setGeneratedIdea(null);
     }
   };
 
