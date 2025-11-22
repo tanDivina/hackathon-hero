@@ -42,11 +42,7 @@ export const PitchScript: React.FC<PitchScriptProps> = ({ onGenerate, isPro, pro
   const [alternatives, setAlternatives] = useState<Record<SectionKey, string[]>>({} as Record<SectionKey, string[]>);
 
   useEffect(() => {
-    if (projectId) {
-      loadSavedData();
-    } else {
-      resetForm();
-    }
+    loadSavedData();
   }, [projectId]);
 
   useEffect(() => {
@@ -75,16 +71,17 @@ export const PitchScript: React.FC<PitchScriptProps> = ({ onGenerate, isPro, pro
   };
 
   const loadSavedData = async () => {
+    resetForm();
+
     if (!projectId) return;
 
-    // Always check for the latest idea first
     const ideaData = await databaseService.getIdea(projectId);
     const latestIdea = ideaData?.idea_text || '';
 
+    setIdea(latestIdea);
+
     const saved = await databaseService.getPitchScript(projectId);
     if (saved) {
-      // Use the latest idea from ideas table, not the one saved with the script
-      setIdea(latestIdea || saved.idea_text);
       setScriptType(saved.script_type || 'pitch');
       setGithubUrl(saved.github_url || '');
       setYourName(saved.your_name || '');
@@ -117,15 +114,6 @@ export const PitchScript: React.FC<PitchScriptProps> = ({ onGenerate, isPro, pro
           fullScript: `PROBLEM (60s):\n${saved.problem}\n\nSOLUTION (90s):\n${saved.solution}\n\nTRACTION (30s):\n${saved.traction}`,
         });
       }
-    } else {
-      setIdea(latestIdea);
-      setScript(null);
-      setScriptType('pitch');
-      setYourName('');
-      setGithubUrl('');
-      setEditingSection(null);
-      setEditedContent('');
-      setAlternatives({} as Record<SectionKey, string[]>);
     }
   };
 

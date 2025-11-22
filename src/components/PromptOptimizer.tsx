@@ -17,32 +17,25 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({ onOptimize, is
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    if (projectId) {
-      loadSavedData();
-    } else {
-      setIdea('');
-      setOptimizedPrompt('');
-      setWordCount(0);
-    }
+    loadSavedData();
   }, [projectId]);
 
   const loadSavedData = async () => {
+    setIdea('');
+    setOptimizedPrompt('');
+    setWordCount(0);
+
     if (!projectId) return;
 
-    // Always load the latest idea from the ideas table
     const ideaData = await databaseService.getIdea(projectId);
     const latestIdea = ideaData?.idea_text || '';
 
+    setIdea(latestIdea);
+
     const saved = await databaseService.getPrompt(projectId);
     if (saved) {
-      // Use latest idea from ideas table, fall back to saved idea if no idea exists
-      setIdea(latestIdea || saved.idea_text);
       setOptimizedPrompt(saved.optimized_prompt);
       setWordCount(saved.word_count);
-    } else {
-      setIdea(latestIdea);
-      setOptimizedPrompt('');
-      setWordCount(0);
     }
   };
 
