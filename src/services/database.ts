@@ -646,11 +646,14 @@ export const databaseService = {
       return { success: true, requiresAuth: false };
     }
 
+    // Use a unique order ID per session to avoid constraint violation
+    const uniqueOrderId = `BETA_ACCESS_${sessionId}`;
+
     const { data, error } = await supabase
       .from('payments')
       .insert({
         session_id: sessionId,
-        paypal_order_id: 'BETA_ACCESS',
+        paypal_order_id: uniqueOrderId,
         payer_email: user.email,
         amount: 0,
         currency: 'usd',
