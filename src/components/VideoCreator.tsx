@@ -199,6 +199,7 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
       mediaRecorder.onstop = async () => {
         const blob = new Blob(chunks, { type: 'video/webm' });
         recordedBlobRef.current = blob;
+        console.log('Recording complete. Blob size:', blob.size, 'bytes');
 
         stream.getTracks().forEach(track => track.stop());
         setIsRecording(false);
@@ -208,6 +209,10 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
         setRecordingProgress(0);
 
         if (outputFormat === 'mp4') {
+          if (blob.size === 0) {
+            alert('Recording failed: No video data captured');
+            return;
+          }
           await convertToMp4(blob);
         } else {
           downloadVideo(blob, 'webm');
@@ -316,23 +321,38 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
   };
 
   const loadFFmpeg = async () => {
-    if (ffmpegRef.current) return ffmpegRef.current;
+    if (ffmpegRef.current && ffmpegRef.current.loaded) {
+      console.log('FFmpeg already loaded');
+      return ffmpegRef.current;
+    }
 
+    console.log('Loading FFmpeg...');
     const ffmpeg = new FFmpeg();
 
     ffmpeg.on('log', ({ message }) => {
-      console.log(message);
+      console.log('FFmpeg log:', message);
     });
 
     ffmpeg.on('progress', ({ progress }) => {
-      setConversionProgress(Math.round(progress * 100));
+      const percent = Math.round(progress * 100);
+      console.log('FFmpeg progress:', percent);
+      if (percent > 20) {
+        setConversionProgress(20 + Math.round(percent * 0.6));
+      }
     });
 
-    const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
-    await ffmpeg.load({
-      coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
-      wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
-    });
+    try {
+      const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
+      console.log('Fetching FFmpeg core files...');
+      await ffmpeg.load({
+        coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
+        wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+      });
+      console.log('FFmpeg loaded successfully');
+    } catch (error) {
+      console.error('Failed to load FFmpeg:', error);
+      throw new Error('Failed to load video converter. Please try again.');
+    }
 
     ffmpegRef.current = ffmpeg;
     return ffmpeg;
@@ -378,6 +398,7 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
       setConversionProgress(0);
     } catch (error) {
       console.error('Error converting to MP4:', error);
+      alert(`Failed to convert video: ${error instanceof Error ? error.message : 'Unknown error'}`);
       setIsConverting(false);
       setConversionProgress(0);
 
