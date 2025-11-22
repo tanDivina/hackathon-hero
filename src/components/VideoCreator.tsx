@@ -341,28 +341,36 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
   const convertToMp4 = async (webmBlob: Blob) => {
     try {
       setIsConverting(true);
-      setConversionProgress(0);
+      setConversionProgress(5);
 
       const ffmpeg = await loadFFmpeg();
+      setConversionProgress(10);
 
+      console.log('Writing input file...');
       await ffmpeg.writeFile('input.webm', await fetchFile(webmBlob));
+      setConversionProgress(20);
 
+      console.log('Starting conversion...');
       await ffmpeg.exec([
         '-i', 'input.webm',
         '-c:v', 'libx264',
-        '-preset', 'fast',
-        '-crf', '22',
+        '-preset', 'ultrafast',
+        '-crf', '28',
         '-c:a', 'aac',
         '-b:a', '128k',
         '-movflags', '+faststart',
         'output.mp4'
       ]);
 
+      setConversionProgress(80);
+      console.log('Reading output file...');
       const data = await ffmpeg.readFile('output.mp4');
       const mp4Blob = new Blob([data], { type: 'video/mp4' });
 
+      setConversionProgress(90);
       downloadVideo(mp4Blob, 'mp4');
 
+      setConversionProgress(95);
       await ffmpeg.deleteFile('input.webm');
       await ffmpeg.deleteFile('output.mp4');
 
