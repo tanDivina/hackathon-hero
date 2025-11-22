@@ -31,7 +31,7 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
   const [currentSection, setCurrentSection] = useState<number>(0);
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
   const [recordingProgress, setRecordingProgress] = useState<number>(0);
-  const [outputFormat, setOutputFormat] = useState<'webm' | 'mp4'>('mp4');
+  const [outputFormat, setOutputFormat] = useState<'webm' | 'mp4'>('webm');
   const [isConverting, setIsConverting] = useState(false);
   const [conversionProgress, setConversionProgress] = useState<number>(0);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -499,8 +499,8 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
                   onChange={(e) => setOutputFormat(e.target.value as 'webm' | 'mp4')}
                   className="w-full bg-black border border-gray-800 px-3 py-2 text-sm text-gray-300 focus:border-gray-700 focus:outline-none"
                 >
-                  <option value="mp4">MP4 (H.264, widely compatible)</option>
-                  <option value="webm">WebM (faster, no conversion)</option>
+                  <option value="webm">WebM (recommended - instant download)</option>
+                  <option value="mp4">MP4 (requires conversion - may be slow)</option>
                 </select>
               </div>
             </div>
@@ -569,8 +569,8 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
               <p className="text-xs text-gray-600 leading-relaxed">
                 <strong className="text-gray-500">Instructions:</strong> Click Start Recording to begin.
                 Your camera will activate and a teleprompter will show your script sections with timing.
-                {outputFormat === 'mp4' && ' Video will be converted to MP4 after recording.'}
-                {outputFormat === 'webm' && ' Video saves as WebM format.'}
+                {outputFormat === 'mp4' && ' Note: MP4 conversion downloads 30MB+ converter files first.'}
+                {outputFormat === 'webm' && ' Video downloads instantly (plays in Chrome, Firefox, Edge).'}
               </p>
             </div>
           </>
