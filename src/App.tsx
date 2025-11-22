@@ -100,7 +100,7 @@ function HackathonWizard() {
 
     if (result.requiresAuth) {
       setIsUnlocking(false);
-      window.location.href = '/login';
+      navigate('/login');
       return;
     }
 
