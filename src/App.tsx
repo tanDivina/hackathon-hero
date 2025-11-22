@@ -94,7 +94,6 @@ function HackathonWizard() {
 
   const handleUnlockPro = async () => {
     setIsUnlocking(true);
-    await new Promise(resolve => setTimeout(resolve, 2000));
 
     const result = await databaseService.enableTestMode();
 

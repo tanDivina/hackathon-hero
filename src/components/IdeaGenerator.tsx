@@ -21,14 +21,11 @@ export const IdeaGenerator: React.FC<IdeaGeneratorProps> = ({ onGenerate, hasRul
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedIdea, setGeneratedIdea] = useState<GeneratedIdea | null>(null);
 
-  useEffect(() => {
-    loadSavedIdea();
-  }, [projectId]);
-
   const loadSavedIdea = async () => {
-    setGeneratedIdea(null);
-
-    if (!projectId) return;
+    if (!projectId) {
+      setGeneratedIdea(null);
+      return;
+    }
 
     const saved = await databaseService.getIdea(projectId);
     if (saved) {
@@ -38,8 +35,14 @@ export const IdeaGenerator: React.FC<IdeaGeneratorProps> = ({ onGenerate, hasRul
         reasoning: saved.reasoning,
         sponsorAlignment: saved.sponsor_alignment,
       });
+    } else {
+      setGeneratedIdea(null);
     }
   };
+
+  useEffect(() => {
+    loadSavedIdea();
+  }, [projectId]);
 
   const handleGenerate = async () => {
     if (!hasRules) return;
