@@ -350,7 +350,7 @@ function HackathonWizard() {
             </div>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid md:grid-cols-2 gap-6" key={currentProject?.id}>
             <RulesParser
               onParse={handleParseRules}
               onParseFromUrl={handleParseRulesFromUrl}
@@ -369,7 +369,6 @@ function HackathonWizard() {
               projectId={currentProject?.id}
             />
             <IdeaGenerator
-              key={currentProject?.id}
               onGenerate={handleGenerateIdea}
               hasRules={hasRules}
               projectId={currentProject?.id}
@@ -389,13 +388,11 @@ function HackathonWizard() {
               }}
             />
             <PromptOptimizer
-              key={currentProject?.id}
               onOptimize={handleOptimizePrompt}
               isPro={isPro}
               projectId={currentProject?.id}
             />
             <PitchScript
-              key={currentProject?.id}
               onGenerate={handleGeneratePitch}
               isPro={isPro}
               projectId={currentProject?.id}
