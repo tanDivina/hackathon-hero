@@ -21,6 +21,7 @@ import { SuccessPage } from './pages/SuccessPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { AuthGuard } from './components/AuthGuard';
 import { exportUtils } from './utils/exportUtils';
+import { supabase } from './lib/supabase';
 
 const EXIT_INTENT_KEY = 'hackathon_hero_exit_intent_shown';
 
@@ -50,6 +51,19 @@ function HackathonWizard() {
 
   useEffect(() => {
     initializeApp();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      (async () => {
+        if (event === 'SIGNED_OUT') {
+          setIsPro(false);
+          setCurrentProject(null);
+        } else if (event === 'SIGNED_IN' && session) {
+          await initializeApp();
+        }
+      })();
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   useEffect(() => {

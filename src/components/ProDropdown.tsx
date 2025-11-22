@@ -20,9 +20,9 @@ export function ProDropdown() {
   }, []);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
     setIsOpen(false);
-    navigate('/');
+    await supabase.auth.signOut();
+    window.location.href = '/';
   };
 
   const handleProfile = () => {
