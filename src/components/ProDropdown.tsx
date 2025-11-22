@@ -22,6 +22,7 @@ export function ProDropdown() {
   const handleLogout = async () => {
     setIsOpen(false);
     await supabase.auth.signOut();
+    localStorage.removeItem('hackathon_session_id');
     window.location.href = '/';
   };
 
