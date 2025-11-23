@@ -587,6 +587,7 @@ function HackathonWizard() {
             <ul className="list-disc list-inside text-gray-400 space-y-1 ml-4">
               <li>Always parse rules first to get context-aware suggestions</li>
               <li>Review sponsor technologies and align your idea</li>
+              <li>Watch sponsor livestreams and Q&A sessions - they often reveal what judges want to see beyond the written rules</li>
               <li>Use the optimized prompt in AI tools like Claude or ChatGPT</li>
               <li>Keep your pitch concise and impactful</li>
             </ul>
