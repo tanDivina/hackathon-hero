@@ -142,7 +142,14 @@ function HackathonWizard() {
 
     if (currentProject) {
       setIsSaving(true);
-      await databaseService.saveRulesData(currentProject.id, rulesText, result);
+      await databaseService.saveRulesData(currentProject.id, rulesText, {
+        deadline: result.deadline,
+        sponsors: result.sponsors,
+        judgingCriteria: result.judgingCriteria,
+        prizes: result.prizes,
+        theme: result.theme,
+        eventType: result.eventType,
+      });
       setHasRules(true);
 
       if (result.deadline) {
@@ -176,6 +183,9 @@ function HackathonWizard() {
       deadline: rulesData.deadline,
       sponsors: rulesData.sponsors,
       judgingCriteria: rulesData.judging_criteria,
+      prizes: rulesData.prizes,
+      theme: rulesData.theme,
+      eventType: rulesData.event_type,
     });
 
     setIsSaving(true);

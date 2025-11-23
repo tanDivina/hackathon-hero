@@ -5,6 +5,8 @@ export interface ParsedRulesData {
   sponsors: string[];
   judgingCriteria: string[];
   prizes: string[];
+  theme: string;
+  eventType: 'GAME_JAM' | 'HACKATHON' | 'DATATHON' | 'DESIGN_CHALLENGE';
 }
 
 export interface OptimizedPromptData {
@@ -72,7 +74,9 @@ export const aiService = {
   "deadline": "exact deadline text or 'No specific deadline found'",
   "sponsors": ["sponsor1", "sponsor2", ...] or ["No sponsors identified"],
   "judgingCriteria": ["criterion1", "criterion2", ...] or ["No criteria identified"],
-  "prizes": ["prize1 description", "prize2 description", ...] or ["No prizes identified"]
+  "prizes": ["prize1 description", "prize2 description", ...] or ["No prizes identified"],
+  "theme": "The specific theme (e.g., 'Halloween', 'FinTech', 'Open Innovation', 'Retro', 'Space') or 'General'",
+  "eventType": "One of: 'GAME_JAM', 'HACKATHON', 'DATATHON', 'DESIGN_CHALLENGE'"
 }
 
 Rules to analyze:
@@ -83,6 +87,12 @@ Important:
 - SPONSORS: Look for companies, organizations, platforms, or brands explicitly mentioned as sponsors, partners, or providing prizes/tracks. Include any company names mentioned in prize categories or special tracks (e.g., "Best use of X API" means X is a sponsor). Do NOT include general terms.
 - List all judging criteria or evaluation points
 - PRIZES: List all prizes with amounts and descriptions (e.g., "1st Place: $5000", "Best Use of AI: $1000"). Include both overall prizes and sponsor-specific prizes/tracks.
+- THEME: Extract the creative theme or focus area (e.g., "Halloween", "Sustainability", "Music", "Retro Gaming")
+- EVENT TYPE DETECTION:
+  * If keywords like "Game", "Gaming", "Game Jam", "Play", "Unity", "Godot", "Unreal", "Interactive Experience" appear → "GAME_JAM"
+  * If keywords like "Data", "Analytics", "Dataset", "Visualization", "Data Science" appear → "DATATHON"
+  * If keywords like "Design", "UI/UX", "Prototype", "Figma", "Visual Design" appear → "DESIGN_CHALLENGE"
+  * Otherwise → "HACKATHON"
 - Return valid JSON only, no additional text`;
 
     try {
@@ -95,11 +105,13 @@ Important:
         sponsors: ['Error parsing sponsors'],
         judgingCriteria: ['Error parsing criteria'],
         prizes: ['Error parsing prizes'],
+        theme: 'General',
+        eventType: 'HACKATHON',
       };
     }
   },
 
-  async generateIdea(rulesData: { deadline: string; sponsors: string[]; judgingCriteria: string[] }): Promise<GeneratedIdeaData> {
+  async generateIdea(rulesData: ParsedRulesData): Promise<GeneratedIdeaData> {
     const hasRealSponsors = rulesData.sponsors.length > 0 &&
                             !rulesData.sponsors.some(s => s.toLowerCase().includes('no sponsor') || s.toLowerCase().includes('not identified'));
 
@@ -110,33 +122,103 @@ SPONSORS: ${rulesData.sponsors.join(', ')}
 CRITICAL INSTRUCTION ON SPONSORS:
 Do not hallucinate APIs or user bases that do not exist.
 
-1. Analyze each sponsor name in the context of a "Developer Hackathon"
+1. Analyze each sponsor name in the context of "${rulesData.eventType}"
 2. SPONSOR TYPE CLASSIFICATION:
    - INFRASTRUCTURE SPONSORS (Database, Hosting, Framework, Builder): The idea is BUILT ON this platform
      Examples: Supabase, Vercel, Railway, Bolt.new
+   - CREATIVE TOOL SPONSORS (Game Engines, Design Tools, Visual Editors): The idea USES this tool for creation
+     Examples: Unity, Godot, Kiro (video editor), Figma, Blender
    - API/FEATURE SPONSORS (Services, APIs): The idea USES this API for a specific feature
      Examples: OpenAI, Stripe, Twilio, SendGrid
    - CONSUMER BRAND SPONSORS: Usually event sponsors only, may not have developer tools
      Examples: Coca-Cola, Nike (only mention if they have relevant APIs)
 
-3. SPECIAL CASE - "Bolt":
-   - If "Bolt" is mentioned, it refers to "Bolt.new" (StackBlitz's AI-Powered Web App Builder), NOT Bolt checkout/payments
-   - DO NOT mention: "Bolt Shoppers", "Bolt Loyalty Programs", "Bolt Checkout", "Bolt Payment Gateway"
-   - CORRECT usage: "Built using Bolt.new's full-stack development environment"
-   - The app is BUILT ON Bolt, not ABOUT Bolt
+3. SPECIAL CASES:
+   - "Bolt" refers to "Bolt.new" (StackBlitz's AI-Powered Web App Builder), NOT Bolt checkout/payments
+   - "Kiro" is a visual editor/storytelling tool - perfect for interactive narratives, visual novels, or cinematic experiences
+   - Game Engine sponsors (Unity, Godot, Unreal) indicate this is a GAME JAM
 
 4. INTEGRATION RULES:
    - Infrastructure Sponsors: Mention as part of the tech stack ("Built on [Platform]")
+   - Creative Tool Sponsors: Mention as the primary creation tool ("Created using [Tool] for [creative aspect]")
    - API Sponsors: Mention as a feature implementation ("Uses [API] for [specific function]")
    - If a sponsor has no relevant developer tools, DO NOT force them into the idea`
     : `
 SPONSORS: None identified
 
-Focus purely on the judging criteria and solving real problems with appropriate technology.`;
+Focus purely on the judging criteria and ${rulesData.eventType === 'GAME_JAM' ? 'creating an engaging experience' : 'solving real problems'} with appropriate technology.`;
 
-    const prompt = `You are an expert Hackathon Strategy Coach. Generate a high-potential winning project idea based on specific hackathon rules and sponsors.
+    // CREATE DYNAMIC GOALS BASED ON EVENT TYPE
+    let specificGoalInstruction = '';
 
-HACKATHON DETAILS:
+    if (rulesData.eventType === 'GAME_JAM' || rulesData.theme.toLowerCase().includes('game')) {
+      // GAME JAM LOGIC
+      specificGoalInstruction = `
+TASK - GENERATE A CREATIVE GAME OR INTERACTIVE EXPERIENCE THAT:
+1. Heavily embraces the theme: "${rulesData.theme}"
+2. Focuses on "Fun", "Engagement", "Visuals", and "Creativity" (NOT business utility or problem-solving)
+3. Uses sponsor tools creatively (e.g., Kiro for cinematic storytelling, Unity for gameplay)
+4. Is scope-appropriate for the jam duration (${rulesData.deadline})
+5. Stands out through unique mechanics, atmosphere, or narrative
+6. Creates an emotional or memorable player experience
+
+CRITICAL RULES FOR GAME JAMS:
+- DO NOT suggest utility apps, document scanners, or B2B SaaS
+- DO suggest games, interactive stories, visual novels, puzzle experiences
+- Focus on player engagement and creative expression
+- Leverage visual and audio elements to enhance atmosphere
+- Think about game mechanics that fit the theme naturally`;
+    } else if (rulesData.eventType === 'DATATHON') {
+      // DATATHON LOGIC
+      specificGoalInstruction = `
+TASK - GENERATE A DATA-DRIVEN PROJECT THAT:
+1. Analyzes datasets to extract meaningful insights related to: "${rulesData.theme}"
+2. Uses data visualization, statistical analysis, or machine learning
+3. Presents findings in an actionable, accessible way
+4. Addresses the judging criteria through data-driven evidence
+5. Is technically feasible within the deadline (${rulesData.deadline})
+
+CRITICAL RULES FOR DATATHONS:
+- Focus on data analysis, visualization, and insight generation
+- Suggest appropriate ML/AI models if relevant to the problem
+- Emphasize clear communication of findings`;
+    } else if (rulesData.eventType === 'DESIGN_CHALLENGE') {
+      // DESIGN CHALLENGE LOGIC
+      specificGoalInstruction = `
+TASK - GENERATE A DESIGN-FOCUSED PROJECT THAT:
+1. Addresses the design theme: "${rulesData.theme}"
+2. Focuses on user experience, visual design, and interaction patterns
+3. Creates polished prototypes or design systems
+4. Demonstrates innovative UI/UX thinking
+5. Is achievable within the deadline (${rulesData.deadline})
+
+CRITICAL RULES FOR DESIGN CHALLENGES:
+- Emphasize visual polish and user experience
+- Focus on design thinking and iteration
+- Suggest appropriate design tools (Figma, Adobe XD, etc.)`;
+    } else {
+      // STANDARD HACKATHON LOGIC
+      specificGoalInstruction = `
+TASK - GENERATE A PROJECT IDEA THAT:
+1. Solves a real, specific problem (NOT a meta-hackathon preparation tool)
+2. Directly addresses the judging criteria listed above
+3. Is technically feasible within the deadline (${rulesData.deadline})
+4. Is innovative and stands out from typical submissions
+5. Has clear practical value for real users
+6. Properly integrates sponsor technology (if applicable) according to the rules above
+
+CRITICAL RULES FOR HACKATHONS:
+- Be creative and specific
+- Focus on solving real-world problems for real user groups
+- Do not make up fake user groups, fake APIs, or non-existent products
+- Do not force sponsor integration where it doesn't make sense`;
+    }
+
+    const prompt = `You are an expert Hackathon Strategy Coach. Generate a high-potential winning project idea based on specific event rules and sponsors.
+
+EVENT DETAILS:
+Type: ${rulesData.eventType}
+Theme: ${rulesData.theme}
 ${sponsorContext}
 
 JUDGING CRITERIA:
@@ -144,28 +226,14 @@ ${rulesData.judgingCriteria.join('\n')}
 
 DEADLINE: ${rulesData.deadline}
 
-TASK - GENERATE AN IDEA THAT:
-1. Solves a real, specific problem (NOT a meta-hackathon preparation tool)
-2. Directly addresses the judging criteria listed above
-3. Is technically feasible within the deadline
-4. Is innovative and stands out from typical submissions
-5. Has clear practical value for real users
-6. Properly integrates sponsor technology (if applicable) according to the rules above
-
-CRITICAL RULES:
-- Be creative and specific
-- Focus on solving real-world problems for real user groups
-- Do not make up fake user groups, fake APIs, or non-existent products
-- Do not force sponsor integration where it doesn't make sense
-- If a sponsor is infrastructure, mention it's built on that platform
-- If a sponsor is an API, mention specific features that use it
+${specificGoalInstruction}
 
 OUTPUT FORMAT (JSON only):
 {
-  "idea": "Specific project description addressing a real problem (2-3 sentences)",
-  "category": "Project category aligned with hackathon theme",
-  "reasoning": "Explain how this directly meets each judging criterion (2-3 sentences)",
-  "sponsorAlignment": "Technical stack and sponsor integration specifics (2-3 sentences)"
+  "idea": "${rulesData.eventType === 'GAME_JAM' ? 'Game concept or interactive experience description' : 'Specific project description addressing a real problem'} (2-3 sentences)",
+  "category": "${rulesData.eventType === 'GAME_JAM' ? 'Game genre (e.g., 2D Platformer, Visual Novel, Puzzle Game)' : 'Project category aligned with event theme'}",
+  "reasoning": "Explain how this directly meets the judging criteria and embraces the theme (2-3 sentences)",
+  "sponsorAlignment": "Technical tools and sponsor integration specifics (2-3 sentences)"
 }
 
 Return valid JSON only, no additional text.`;

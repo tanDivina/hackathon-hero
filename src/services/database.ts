@@ -16,6 +16,8 @@ export interface RulesData {
   sponsors: string[];
   judging_criteria: string[];
   prizes: string[];
+  theme: string;
+  event_type: 'GAME_JAM' | 'HACKATHON' | 'DATATHON' | 'DESIGN_CHALLENGE';
   created_at: string;
 }
 
@@ -168,6 +170,8 @@ export const databaseService = {
     sponsors: string[];
     judgingCriteria: string[];
     prizes: string[];
+    theme: string;
+    eventType: 'GAME_JAM' | 'HACKATHON' | 'DATATHON' | 'DESIGN_CHALLENGE';
   }): Promise<RulesData | null> {
     const { data: existing } = await supabase
       .from('rules_data')
@@ -184,6 +188,8 @@ export const databaseService = {
           sponsors: parsedData.sponsors,
           judging_criteria: parsedData.judgingCriteria,
           prizes: parsedData.prizes,
+          theme: parsedData.theme,
+          event_type: parsedData.eventType,
         })
         .eq('id', existing.id)
         .select()
@@ -204,6 +210,8 @@ export const databaseService = {
           sponsors: parsedData.sponsors,
           judging_criteria: parsedData.judgingCriteria,
           prizes: parsedData.prizes,
+          theme: parsedData.theme,
+          event_type: parsedData.eventType,
         })
         .select()
         .single();
