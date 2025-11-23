@@ -111,7 +111,7 @@ Important:
     }
   },
 
-  async generateIdea(rulesData: ParsedRulesData): Promise<GeneratedIdeaData> {
+  async generateIdea(rulesData: ParsedRulesData & { fullRulesText?: string }): Promise<GeneratedIdeaData> {
     const hasRealSponsors = rulesData.sponsors.length > 0 &&
                             !rulesData.sponsors.some(s => s.toLowerCase().includes('no sponsor') || s.toLowerCase().includes('not identified'));
 
@@ -216,7 +216,12 @@ CRITICAL RULES FOR HACKATHONS:
 
     const prompt = `You are an expert Hackathon Strategy Coach. Generate a high-potential winning project idea based on specific event rules and sponsors.
 
-EVENT DETAILS:
+${rulesData.fullRulesText ? `FULL RULES DOCUMENT:
+\`\`\`
+${rulesData.fullRulesText}
+\`\`\`
+
+EXTRACTED KEY INFORMATION:` : 'EVENT DETAILS:'}
 Type: ${rulesData.eventType}
 Theme: ${rulesData.theme}
 ${sponsorContext}
@@ -226,7 +231,14 @@ ${rulesData.judgingCriteria.join('\n')}
 
 DEADLINE: ${rulesData.deadline}
 
-${specificGoalInstruction}
+${rulesData.fullRulesText ? `IMPORTANT: Read the full rules document above carefully. Pay attention to:
+- Specific requirements and constraints
+- Theme details and atmosphere (e.g., "Halloween", "Spooky")
+- Submission format requirements
+- Special tracks or categories
+- Any unique requirements mentioned in the full text
+
+` : ''}${specificGoalInstruction}
 
 OUTPUT FORMAT (JSON only):
 {

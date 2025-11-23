@@ -186,6 +186,7 @@ function HackathonWizard() {
       prizes: rulesData.prizes,
       theme: rulesData.theme,
       eventType: rulesData.event_type,
+      fullRulesText: rulesData.rules_text,
     });
 
     setIsSaving(true);
