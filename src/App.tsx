@@ -576,6 +576,7 @@ function HackathonWizard() {
             <ul className="list-disc list-inside text-gray-400 space-y-1 ml-4">
               <li>Chat with Rules AI assistant</li>
               <li>Parse rules from URLs</li>
+              <li>Video Creator with logo and audio</li>
               <li>Export projects (JSON, PDF, Markdown, DOCX)</li>
               <li>Multiple project management</li>
             </ul>
