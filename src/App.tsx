@@ -202,7 +202,13 @@ function HackathonWizard() {
   };
 
   const handleOptimizePrompt = async (idea: string) => {
-    const result = await aiService.optimizePrompt(idea);
+    if (!currentProject) throw new Error('No project selected');
+
+    const rulesData = await databaseService.getRulesData(currentProject.id);
+    const result = await aiService.optimizePrompt(idea, rulesData ? {
+      sponsors: rulesData.sponsors,
+      eventType: rulesData.event_type,
+    } : undefined);
 
     if (currentProject) {
       setIsSaving(true);

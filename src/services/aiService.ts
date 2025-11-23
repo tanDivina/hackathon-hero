@@ -264,19 +264,49 @@ Return valid JSON only, no additional text.`;
     }
   },
 
-  async optimizePrompt(idea: string): Promise<OptimizedPromptData> {
-    const systemInstruction = `You are an expert at creating detailed technical specifications for hackathon projects. Generate comprehensive, actionable prompts that include specific technology choices, architecture decisions, and implementation details.`;
+  async optimizePrompt(
+    idea: string,
+    rulesData?: { sponsors: string[]; eventType: string }
+  ): Promise<OptimizedPromptData> {
+    // Analyze sponsors for tech stack overrides
+    const sponsors = rulesData?.sponsors || [];
+    const lowerSponsors = sponsors.map(s => s.toLowerCase());
 
-    const userPrompt = `Create a detailed technical prompt for building this hackathon project: "${idea}"
+    const isAws = lowerSponsors.some(s => s.includes('aws') || s.includes('amazon'));
+    const isGoogle = lowerSponsors.some(s => s.includes('google') || s.includes('firebase'));
+    const isGame = rulesData?.eventType === 'GAME_JAM';
+
+    // Dynamic tech stack instruction
+    let stackInstruction = "React, TypeScript, Tailwind CSS, Supabase";
+    let deploymentInstruction = "Vercel or Netlify";
+
+    if (isAws) {
+      stackInstruction = "React, TypeScript, Tailwind CSS, AWS Amplify (Gen 2), DynamoDB";
+      deploymentInstruction = "AWS Amplify";
+    } else if (isGoogle) {
+      stackInstruction = "React, TypeScript, Tailwind CSS, Firebase";
+      deploymentInstruction = "Firebase Hosting";
+    }
+
+    if (isGame) {
+      stackInstruction = "React, TypeScript, Phaser.js (or Three.js for 3D), Tailwind CSS";
+    }
+
+    const systemInstruction = `You are an expert Technical Lead. You are writing a master prompt for an AI Agent to build a ${rulesData?.eventType || 'hackathon'} project.`;
+
+    const userPrompt = `Create a detailed technical prompt for building this project: "${idea}"
+
+CONTEXT:
+- Event Type: ${rulesData?.eventType || 'General Hackathon'}
+- Sponsors: ${sponsors.join(', ') || 'None'}
 
 The prompt should include:
-- Specific technology stack (React, TypeScript, Tailwind CSS, Supabase)
+- Specific technology stack: Use ${stackInstruction}
 - Architecture and component structure
-- Database schema design
+- Database schema design (if applicable)
 - Key features and functionality
-- UX/UI considerations
-- Code quality requirements
-- Deployment considerations
+- UX/UI considerations (Theme: ${isGame ? 'Immersive/Game UI' : 'Modern/Clean'})
+- Deployment considerations: Target ${deploymentInstruction}
 
 Make it actionable and comprehensive for a developer to implement. The prompt should be at least 250 words.`;
 
@@ -290,9 +320,9 @@ Make it actionable and comprehensive for a developer to implement. The prompt sh
       };
     } catch (error) {
       console.error('Failed to optimize prompt with Gemini:', error);
-      const fallbackPrompt = `Build a production-ready hackathon submission for: ${idea}
+      const fallbackPrompt = `Build a production-ready ${rulesData?.eventType || 'hackathon'} submission for: ${idea}
 
-Use React with TypeScript and Tailwind CSS for the frontend. Integrate Supabase for database and authentication. Create a modular architecture with reusable components. Implement proper error handling and loading states. Design an intuitive UI with smooth animations. Ensure responsive design across all devices. Follow React best practices and TypeScript conventions.`;
+Use ${stackInstruction} for the tech stack. Create a modular architecture with reusable components. Implement proper error handling and loading states. Design an intuitive ${isGame ? 'immersive game' : 'modern'} UI with smooth animations. Ensure responsive design across all devices. Deploy to ${deploymentInstruction}. Follow React best practices and TypeScript conventions.`;
 
       return {
         prompt: fallbackPrompt,
