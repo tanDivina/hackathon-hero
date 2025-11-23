@@ -238,13 +238,39 @@ function HackathonWizard() {
   };
 
   const handleGeneratePitch = async (idea: string, scriptType: 'pitch' | 'demo' | 'intro', githubUrl?: string, yourName?: string) => {
-    let result;
-
     if (scriptType === 'intro') {
-      result = await aiService.generateIntroPitch(idea, yourName);
+      const result = await aiService.generateIntroPitch(idea, yourName);
+
+      if (currentProject) {
+        setIsSaving(true);
+        const saved = await databaseService.savePitchScript(currentProject.id, idea, {
+          problem: '',
+          solution: '',
+          traction: '',
+          script_type: scriptType,
+          demo_requirements: '',
+          demo_tools: '',
+          demo_realworld_use: '',
+          github_url: '',
+          github_analyzed: false,
+          intro_who: result.who,
+          intro_what: result.what,
+          intro_why: result.why,
+          intro_full_script: result.fullScript,
+          your_name: yourName || '',
+        });
+        setCurrentPitchScript(saved);
+        setIsSaving(false);
+      }
+
+      return {
+        problem: '',
+        solution: '',
+        traction: '',
+      };
     } else if (scriptType === 'demo') {
       const rulesData = currentProject ? await databaseService.getRulesData(currentProject.id) : undefined;
-      result = await aiService.generateDemoScript(
+      const result = await aiService.generateDemoScript(
         idea,
         rulesData ? {
           deadline: rulesData.deadline,
@@ -253,33 +279,61 @@ function HackathonWizard() {
         } : undefined,
         githubUrl
       );
+
+      if (currentProject) {
+        setIsSaving(true);
+        const saved = await databaseService.savePitchScript(currentProject.id, idea, {
+          problem: result.problem,
+          solution: result.solution,
+          traction: result.traction,
+          script_type: scriptType,
+          demo_requirements: result.requirements,
+          demo_tools: result.tools,
+          demo_realworld_use: result.realworld_use,
+          github_url: githubUrl || '',
+          github_analyzed: !!githubUrl,
+          intro_who: '',
+          intro_what: '',
+          intro_why: '',
+          intro_full_script: '',
+          your_name: '',
+        });
+        setCurrentPitchScript(saved);
+        setIsSaving(false);
+      }
+
+      return {
+        problem: result.problem,
+        solution: result.solution,
+        traction: result.traction,
+      };
     } else {
-      result = await aiService.generatePitchScript(idea);
-    }
+      const result = await aiService.generatePitchScript(idea);
 
-    if (currentProject) {
-      setIsSaving(true);
-      const saved = await databaseService.savePitchScript(currentProject.id, idea, {
-        problem: result.problem || '',
-        solution: result.solution || '',
-        traction: result.traction || '',
-        script_type: scriptType,
-        demo_requirements: scriptType === 'demo' ? result.requirements : '',
-        demo_tools: scriptType === 'demo' ? result.tools : '',
-        demo_realworld_use: scriptType === 'demo' ? result.realworld_use : '',
-        github_url: githubUrl || '',
-        github_analyzed: !!githubUrl,
-        intro_who: scriptType === 'intro' ? result.who : '',
-        intro_what: scriptType === 'intro' ? result.what : '',
-        intro_why: scriptType === 'intro' ? result.why : '',
-        intro_full_script: scriptType === 'intro' ? result.fullScript : '',
-        your_name: yourName || '',
-      });
-      setCurrentPitchScript(saved);
-      setIsSaving(false);
-    }
+      if (currentProject) {
+        setIsSaving(true);
+        const saved = await databaseService.savePitchScript(currentProject.id, idea, {
+          problem: result.problem,
+          solution: result.solution,
+          traction: result.traction,
+          script_type: scriptType,
+          demo_requirements: '',
+          demo_tools: '',
+          demo_realworld_use: '',
+          github_url: '',
+          github_analyzed: false,
+          intro_who: '',
+          intro_what: '',
+          intro_why: '',
+          intro_full_script: '',
+          your_name: '',
+        });
+        setCurrentPitchScript(saved);
+        setIsSaving(false);
+      }
 
-    return result;
+      return result;
+    }
   };
 
   const handleChatWithRules = async (question: string, rulesContext: string) => {
