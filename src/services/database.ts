@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 export interface Project {
   id: string;
   session_id: string;
+  user_id?: string;
   name: string;
   created_at: string;
   updated_at: string;
@@ -111,9 +112,23 @@ const getSessionId = (): string => {
 export const databaseService = {
   async createProject(name: string = 'Untitled Project'): Promise<Project | null> {
     const sessionId = getSessionId();
+
+    // Get current user if authenticated
+    const { data: { user } } = await supabase.auth.getUser();
+
+    const projectData: any = {
+      session_id: sessionId,
+      name,
+    };
+
+    // If user is authenticated, add user_id
+    if (user) {
+      projectData.user_id = user.id;
+    }
+
     const { data, error } = await supabase
       .from('projects')
-      .insert({ session_id: sessionId, name })
+      .insert(projectData)
       .select()
       .single();
 
@@ -125,12 +140,21 @@ export const databaseService = {
   },
 
   async getProjects(): Promise<Project[]> {
-    const sessionId = getSessionId();
-    const { data, error } = await supabase
-      .from('projects')
-      .select('*')
-      .eq('session_id', sessionId)
-      .order('updated_at', { ascending: false });
+    // Get current user if authenticated
+    const { data: { user } } = await supabase.auth.getUser();
+
+    let query = supabase.from('projects').select('*');
+
+    // If user is authenticated, filter by user_id
+    if (user) {
+      query = query.eq('user_id', user.id);
+    } else {
+      // If not authenticated, filter by session_id (fallback for old behavior)
+      const sessionId = getSessionId();
+      query = query.eq('session_id', sessionId).is('user_id', null);
+    }
+
+    const { data, error } = await query.order('updated_at', { ascending: false });
 
     if (error) {
       console.error('Error fetching projects:', error);
