@@ -13,6 +13,8 @@ import { ExportDropdown, ExportFormat } from './components/ExportDropdown';
 import { RulesChat } from './components/RulesChat';
 import { ExitIntentPopup, useExitIntent } from './components/ExitIntentPopup';
 import { Footer } from './components/Footer';
+import { InfoModal } from './components/InfoModal';
+import { HelpButton } from './components/HelpButton';
 import { aiService } from './services/aiService';
 import { databaseService, Project, PitchScriptData } from './services/database';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
@@ -36,6 +38,7 @@ function HackathonWizard() {
   const [currentPitchScript, setCurrentPitchScript] = useState<PitchScriptData | null>(null);
   const [hasRules, setHasRules] = useState(false);
   const [deadline, setDeadline] = useState<string>('');
+  const [showInfoModal, setShowInfoModal] = useState(false);
 
   const handleExitIntent = useCallback(() => {
     if (isPro) return;
@@ -406,9 +409,12 @@ function HackathonWizard() {
 
           <div className="border-b border-gray-800 mb-8 pb-6">
             <div className="flex items-center justify-between">
-              <p className="text-accent-yellow font-mono text-sm tracking-wider">
-                // HACKATHON PLANNING COMMAND CENTER
-              </p>
+              <div className="flex items-center gap-3">
+                <p className="text-accent-yellow font-mono text-sm tracking-wider">
+                  // HACKATHON PLANNING COMMAND CENTER
+                </p>
+                <HelpButton onClick={() => setShowInfoModal(true)} />
+              </div>
               <div className="flex items-center gap-3">
                 <ExportDropdown
                   onExport={handleExport}
@@ -505,6 +511,87 @@ function HackathonWizard() {
         onClose={handleCloseExitIntent}
         onGetAccess={handleExitIntentGetAccess}
       />
+
+      <InfoModal
+        isOpen={showInfoModal}
+        onClose={() => setShowInfoModal(false)}
+        title="How to Use Hackathon Hero"
+      >
+        <div className="space-y-6">
+          <section>
+            <h3 className="text-lg font-bold text-white mb-2">Getting Started</h3>
+            <p className="text-gray-400 leading-relaxed">
+              Hackathon Hero is your AI-powered command center for winning hackathons. Follow these steps to maximize your chances of success.
+            </p>
+          </section>
+
+          <section>
+            <h3 className="text-lg font-bold text-white mb-2">Step 1: Parse Rules</h3>
+            <p className="text-gray-400 leading-relaxed mb-2">
+              Paste the hackathon rules or provide a URL. Our AI will extract:
+            </p>
+            <ul className="list-disc list-inside text-gray-400 space-y-1 ml-4">
+              <li>Submission deadline</li>
+              <li>Sponsors and their technologies</li>
+              <li>Judging criteria</li>
+              <li>Event type (Game Jam, Hackathon, etc.)</li>
+            </ul>
+          </section>
+
+          <section>
+            <h3 className="text-lg font-bold text-white mb-2">Step 2: Generate Ideas</h3>
+            <p className="text-gray-400 leading-relaxed">
+              Based on the parsed rules, our AI generates project ideas that align with sponsors and judging criteria. Each idea includes category and reasoning.
+            </p>
+          </section>
+
+          <section>
+            <h3 className="text-lg font-bold text-white mb-2">Step 3: Optimize Prompt</h3>
+            <p className="text-gray-400 leading-relaxed">
+              Turn your idea into a detailed technical prompt. The AI considers the event type and sponsors to recommend the right tech stack and deployment platform.
+            </p>
+          </section>
+
+          <section>
+            <h3 className="text-lg font-bold text-white mb-2">Step 4: Generate Pitch Script</h3>
+            <p className="text-gray-400 leading-relaxed mb-2">
+              Choose from three script types:
+            </p>
+            <ul className="list-disc list-inside text-gray-400 space-y-1 ml-4">
+              <li><strong className="text-white">Pitch:</strong> Problem, solution, traction framework</li>
+              <li><strong className="text-white">Demo:</strong> Requirements, tools, real-world use</li>
+              <li><strong className="text-white">Intro (20s):</strong> Who, what, why format</li>
+            </ul>
+          </section>
+
+          <section>
+            <h3 className="text-lg font-bold text-white mb-2">Step 5: Create Video</h3>
+            <p className="text-gray-400 leading-relaxed">
+              Upload your logo and audio, position elements, and generate your pitch video with captions synced to your script.
+            </p>
+          </section>
+
+          <section>
+            <h3 className="text-lg font-bold text-white mb-2">Pro Features</h3>
+            <ul className="list-disc list-inside text-gray-400 space-y-1 ml-4">
+              <li>Chat with Rules AI assistant</li>
+              <li>Parse rules from URLs</li>
+              <li>Export projects (JSON, PDF, Markdown, DOCX)</li>
+              <li>Multiple project management</li>
+            </ul>
+          </section>
+
+          <section>
+            <h3 className="text-lg font-bold text-white mb-2">Tips for Success</h3>
+            <ul className="list-disc list-inside text-gray-400 space-y-1 ml-4">
+              <li>Always parse rules first to get context-aware suggestions</li>
+              <li>Review sponsor technologies and align your idea</li>
+              <li>Use the optimized prompt in AI tools like Claude or ChatGPT</li>
+              <li>Keep your pitch concise and impactful</li>
+            </ul>
+          </section>
+        </div>
+      </InfoModal>
 
       <Footer />
     </div>
