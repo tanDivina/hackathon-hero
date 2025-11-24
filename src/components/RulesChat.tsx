@@ -181,7 +181,7 @@ ${project.custom_instructions}
           Parse hackathon rules first to enable chat
         </div>
       ) : (
-        <div className="relative flex flex-col h-[500px] bg-gradient-to-b from-black/40 to-black/20 border border-accent-cyan/20 rounded-lg shadow-[0_0_15px_rgba(0,255,255,0.1)]">
+        <div className="relative flex flex-col h-[500px] bg-gradient-to-b from-black/40 to-black/20 border border-accent-cyan/20 rounded-lg shadow-[0_0_15px_rgba(163,255,0,0.1)]">
           <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6 scrollbar-thin scrollbar-thumb-gray-800 scrollbar-track-transparent">
             {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full space-y-6">
@@ -194,7 +194,7 @@ ${project.custom_instructions}
                     <button
                       key={idx}
                       onClick={() => handleSuggestionClick(prompt)}
-                      className="group bg-black/60 border border-gray-800 hover:border-accent-cyan/50 px-4 py-3 rounded-lg text-left transition-all hover:shadow-[0_0_10px_rgba(0,255,255,0.2)]"
+                      className="group bg-black/60 border border-gray-800 hover:border-accent-cyan/50 px-4 py-3 rounded-lg text-left transition-all hover:shadow-[0_0_10px_rgba(163,255,0,0.2)]"
                     >
                       <span className="text-gray-300 text-sm group-hover:text-white transition-colors">
                         {prompt}
@@ -251,7 +251,7 @@ ${project.custom_instructions}
           </div>
 
           <div className="p-4 border-t border-gray-800/50">
-            <div className="relative flex items-center gap-2 bg-black/80 border border-gray-700 rounded-full px-4 py-2.5 shadow-lg hover:border-accent-cyan/50 focus-within:border-accent-cyan focus-within:shadow-[0_0_15px_rgba(0,255,255,0.2)] transition-all">
+            <div className="relative flex items-center gap-2 bg-black/80 border border-gray-700 rounded-full px-4 py-2.5 shadow-lg hover:border-accent-cyan/50 focus-within:border-accent-cyan focus-within:shadow-[0_0_15px_rgba(163,255,0,0.2)] transition-all">
               <input
                 type="text"
                 value={inputValue}
