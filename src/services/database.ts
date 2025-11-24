@@ -654,10 +654,13 @@ export const databaseService = {
   },
 
   async checkProStatus(): Promise<boolean> {
-    // Check if user is authenticated
-    const { data: { user } } = await supabase.auth.getUser();
+    // Check if user is authenticated - use getSession for more reliable results
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
 
     if (user) {
+      console.log('Checking pro status for user:', user.email);
+
       // For authenticated users, first get their Stripe customer ID
       const { data: customer } = await supabase
         .from('stripe_customers')
@@ -675,6 +678,7 @@ export const databaseService = {
           .maybeSingle();
 
         if (subscription) {
+          console.log('Pro status: true (Stripe subscription)');
           return true;
         }
       }
@@ -688,8 +692,11 @@ export const databaseService = {
         .maybeSingle();
 
       if (payment) {
+        console.log('Pro status: true (payment record found)');
         return true;
       }
+
+      console.log('Pro status: false (no payment or subscription found)');
     }
 
     // For non-authenticated users, check session-based payments (legacy)
@@ -704,6 +711,12 @@ export const databaseService = {
     if (error) {
       console.error('Error checking pro status:', error);
       return false;
+    }
+
+    if (data) {
+      console.log('Pro status: true (session-based payment)');
+    } else {
+      console.log('Pro status: false (no session-based payment)');
     }
 
     return !!data;
