@@ -182,6 +182,9 @@ function HackathonWizard() {
     const rulesData = await databaseService.getRulesData(currentProject.id);
     if (!rulesData) throw new Error('No rules data found');
 
+    const project = await databaseService.getProject(currentProject.id);
+    const customInstructions = project?.custom_instructions || '';
+
     const result = await aiService.generateIdea({
       deadline: rulesData.deadline,
       sponsors: rulesData.sponsors,
@@ -190,6 +193,7 @@ function HackathonWizard() {
       theme: rulesData.theme,
       eventType: rulesData.event_type,
       fullRulesText: rulesData.rules_text,
+      customInstructions,
     });
 
     setIsSaving(true);
@@ -241,8 +245,11 @@ function HackathonWizard() {
   };
 
   const handleGeneratePitch = async (idea: string, scriptType: 'pitch' | 'demo' | 'intro', githubUrl?: string, yourName?: string) => {
+    const project = currentProject ? await databaseService.getProject(currentProject.id) : null;
+    const customInstructions = project?.custom_instructions || '';
+
     if (scriptType === 'intro') {
-      const result = await aiService.generateIntroPitch(idea, yourName);
+      const result = await aiService.generateIntroPitch(idea, yourName, customInstructions);
 
       if (currentProject) {
         setIsSaving(true);
@@ -280,7 +287,8 @@ function HackathonWizard() {
           sponsors: rulesData.sponsors,
           judgingCriteria: rulesData.judging_criteria
         } : undefined,
-        githubUrl
+        githubUrl,
+        customInstructions
       );
 
       if (currentProject) {
@@ -311,7 +319,7 @@ function HackathonWizard() {
         traction: result.traction,
       };
     } else {
-      const result = await aiService.generatePitchScript(idea);
+      const result = await aiService.generatePitchScript(idea, customInstructions);
 
       if (currentProject) {
         setIsSaving(true);

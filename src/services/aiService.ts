@@ -111,7 +111,7 @@ Important:
     }
   },
 
-  async generateIdea(rulesData: ParsedRulesData & { fullRulesText?: string }): Promise<GeneratedIdeaData> {
+  async generateIdea(rulesData: ParsedRulesData & { fullRulesText?: string; customInstructions?: string }): Promise<GeneratedIdeaData> {
     const hasRealSponsors = rulesData.sponsors.length > 0 &&
                             !rulesData.sponsors.some(s => s.toLowerCase().includes('no sponsor') || s.toLowerCase().includes('not identified'));
 
@@ -214,6 +214,19 @@ CRITICAL RULES FOR HACKATHONS:
 - Do not force sponsor integration where it doesn't make sense`;
     }
 
+    const insiderIntelSection = rulesData.customInstructions?.trim() ? `
+
+🔥 INSIDER INTEL - HIGHEST PRIORITY 🔥
+The user has provided additional insights from sponsor livestreams, Q&A sessions, or other sources.
+These insights MUST be prioritized above all generic advice. They reveal what judges REALLY want to see:
+
+${rulesData.customInstructions}
+
+CRITICAL: Treat these instructions as high-priority constraints that override generic best practices.
+If the intel mentions specific preferences (e.g., humor, creativity, specific tech, target audience),
+you MUST incorporate them into your idea generation.
+` : '';
+
     const prompt = `You are an expert Hackathon Strategy Coach. Generate a high-potential winning project idea based on specific event rules and sponsors.
 
 ${rulesData.fullRulesText ? `FULL RULES DOCUMENT:
@@ -230,6 +243,7 @@ JUDGING CRITERIA:
 ${rulesData.judgingCriteria.join('\n')}
 
 DEADLINE: ${rulesData.deadline}
+${insiderIntelSection}
 
 ${rulesData.fullRulesText ? `IMPORTANT: Read the full rules document above carefully. Pay attention to:
 - Specific requirements and constraints
@@ -331,7 +345,18 @@ Use ${stackInstruction} for the tech stack. Create a modular architecture with r
     }
   },
 
-  async generateIntroPitch(idea: string, yourName?: string): Promise<IntroPitchData> {
+  async generateIntroPitch(idea: string, yourName?: string, customInstructions?: string): Promise<IntroPitchData> {
+    const insiderIntelSection = customInstructions?.trim() ? `
+
+🔥 INSIDER INTEL - HIGHEST PRIORITY 🔥
+The user has provided insights from sponsor livestreams or Q&A sessions.
+You MUST incorporate these preferences into the pitch style and content:
+
+${customInstructions}
+
+CRITICAL: If intel mentions tone (e.g., humor, formality), style, or specific focus areas, apply them throughout the pitch.
+` : '';
+
     const prompt = `Create a 20-second intro pitch for this project: "${idea}"
 
 The pitch must answer three questions in 20 seconds total:
@@ -339,7 +364,7 @@ The pitch must answer three questions in 20 seconds total:
 - What you're building (project description)
 - Why you're building it (motivation/problem)
 
-${yourName ? `User's name: ${yourName}` : ''}
+${yourName ? `User's name: ${yourName}` : ''}${insiderIntelSection}
 
 Return ONLY a JSON object with this exact structure:
 
@@ -376,8 +401,19 @@ Guidelines:
     }
   },
 
-  async generatePitchScript(idea: string): Promise<PitchScriptData> {
-    const prompt = `Create a 3-minute elevator pitch script for this project: "${idea}"
+  async generatePitchScript(idea: string, customInstructions?: string): Promise<PitchScriptData> {
+    const insiderIntelSection = customInstructions?.trim() ? `
+
+🔥 INSIDER INTEL - HIGHEST PRIORITY 🔥
+The user has provided insights from sponsor livestreams or Q&A sessions.
+You MUST incorporate these preferences into the pitch style and content:
+
+${customInstructions}
+
+CRITICAL: If intel mentions tone (e.g., humor, formality), style, or specific focus areas, apply them throughout the pitch.
+` : '';
+
+    const prompt = `Create a 3-minute elevator pitch script for this project: "${idea}"${insiderIntelSection}
 
 Structure the pitch using the Problem-Solution-Traction framework. Return ONLY a JSON object with this exact structure:
 
@@ -439,7 +475,18 @@ Return only your answer as plain text, no JSON.`;
     }
   },
 
-  async generateDemoScript(idea: string, rulesData?: { deadline: string; sponsors: string[]; judgingCriteria: string[] }, githubUrl?: string): Promise<DemoScriptData> {
+  async generateDemoScript(idea: string, rulesData?: { deadline: string; sponsors: string[]; judgingCriteria: string[] }, githubUrl?: string, customInstructions?: string): Promise<DemoScriptData> {
+    const insiderIntelSection = customInstructions?.trim() ? `
+
+🔥 INSIDER INTEL - HIGHEST PRIORITY 🔥
+The user has provided insights from sponsor livestreams or Q&A sessions.
+You MUST incorporate these preferences into the demo script style and content:
+
+${customInstructions}
+
+CRITICAL: If intel mentions tone (e.g., humor, formality), style, or specific focus areas, apply them throughout the demo.
+` : '';
+
     const contextInfo = rulesData ? `
 Hackathon Context:
 - Deadline: ${rulesData.deadline}
@@ -450,7 +497,7 @@ ${githubUrl ? `- GitHub: ${githubUrl}` : ''}
 
     const prompt = `Create a 3-minute demo video script for this project: "${idea}"
 
-${contextInfo}
+${contextInfo}${insiderIntelSection}
 
 Structure as a demo video with 6 sections. Return ONLY a JSON object with this exact structure:
 

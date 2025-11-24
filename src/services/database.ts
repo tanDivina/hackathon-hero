@@ -5,6 +5,7 @@ export interface Project {
   session_id: string;
   user_id?: string;
   name: string;
+  custom_instructions?: string;
   created_at: string;
   updated_at: string;
 }
@@ -163,10 +164,24 @@ export const databaseService = {
     return data || [];
   },
 
-  async updateProject(id: string, name: string): Promise<boolean> {
+  async getProject(id: string): Promise<Project | null> {
+    const { data, error } = await supabase
+      .from('projects')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error fetching project:', error);
+      return null;
+    }
+    return data;
+  },
+
+  async updateProject(id: string, updates: Partial<Pick<Project, 'name' | 'custom_instructions'>>): Promise<boolean> {
     const { error } = await supabase
       .from('projects')
-      .update({ name })
+      .update({ ...updates, updated_at: new Date().toISOString() })
       .eq('id', id);
 
     if (error) {
