@@ -83,10 +83,10 @@ Rules to analyze:
 ${rulesText}
 
 Important:
-- Extract the complete deadline information including date and time
+- DEADLINE: Look for ANY date mentioned as deadline, submission date, due date, end date, or final submission. Search for patterns like "MM/DD/YYYY", "Month Day, Year", "YYYY-MM-DD", "DD/MM/YYYY", or phrases like "Submit by", "Due on", "Ends", "Deadline:", "Last updated:", "Updated:". If the title or header mentions a time period like "10-Day Hackathon", note that but also look for specific calendar dates in the content. Extract the most recent or most specific date you find.
 - SPONSORS: Look for companies, organizations, platforms, or brands explicitly mentioned as sponsors, partners, or providing prizes/tracks. Include any company names mentioned in prize categories or special tracks (e.g., "Best use of X API" means X is a sponsor). Do NOT include general terms.
 - List all judging criteria or evaluation points
-- PRIZES: List all prizes with amounts and descriptions (e.g., "1st Place: $5000", "Best Use of AI: $1000"). Include both overall prizes and sponsor-specific prizes/tracks.
+- PRIZES: List all prizes with amounts and descriptions (e.g., "1st Place: $5000", "Best Use of AI: $1000"). Include both overall prizes and sponsor-specific prizes/tracks. Look for "prize pool" amounts (e.g., "Total prize pool: €15,000").
 - THEME: Extract the creative theme or focus area (e.g., "Halloween", "Sustainability", "Music", "Retro Gaming")
 - EVENT TYPE DETECTION:
   * If keywords like "Game", "Gaming", "Game Jam", "Play", "Unity", "Godot", "Unreal", "Interactive Experience" appear → "GAME_JAM"
