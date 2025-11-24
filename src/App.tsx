@@ -103,6 +103,42 @@ function HackathonWizard() {
     await extractDeadline(currentProject.id, rulesData);
   };
 
+  const parseFlexibleDate = (dateStr: string): Date | null => {
+    // Remove ordinal suffixes (st, nd, rd, th)
+    let cleanedStr = dateStr.replace(/(\d+)(st|nd|rd|th)/gi, '$1');
+
+    // Remove timezone abbreviations that confuse Date parser
+    cleanedStr = cleanedStr.replace(/\s+(PT|PST|PDT|ET|EST|EDT|CT|CST|CDT|MT|MST|MDT)$/i, '');
+
+    console.log('🧹 Cleaned date string:', cleanedStr);
+
+    // Try parsing the cleaned string
+    let parsedDate = new Date(cleanedStr);
+
+    // If still invalid, try extracting just the date portion
+    if (isNaN(parsedDate.getTime())) {
+      // Try to match common date patterns
+      const patterns = [
+        /(\d{1,2}\/\d{1,2}\/\d{4})/,                    // MM/DD/YYYY
+        /(\d{4}-\d{2}-\d{2})/,                          // YYYY-MM-DD
+        /([A-Z][a-z]+ \d{1,2},? \d{4})/i,              // Month DD, YYYY
+      ];
+
+      for (const pattern of patterns) {
+        const match = cleanedStr.match(pattern);
+        if (match) {
+          parsedDate = new Date(match[1]);
+          console.log('📅 Trying pattern match:', match[1], parsedDate);
+          if (!isNaN(parsedDate.getTime())) {
+            break;
+          }
+        }
+      }
+    }
+
+    return isNaN(parsedDate.getTime()) ? null : parsedDate;
+  };
+
   const extractDeadline = async (projectId: string, rulesData: any = null) => {
     console.log('🔍 Extracting deadline for project:', projectId);
     console.log('📋 Rules data:', rulesData);
@@ -111,10 +147,10 @@ function HackathonWizard() {
     // Try to extract deadline from rules first
     if (rulesData?.deadline && !rulesData.deadline.toLowerCase().includes('no specific deadline')) {
       console.log('📅 Checking rules deadline:', rulesData.deadline);
-      const deadlineMatch = rulesData.deadline.match(/\d{1,2}\/\d{1,2}\/\d{4}|\d{4}-\d{2}-\d{2}|[A-Z][a-z]+ \d{1,2},? \d{4}/);
+      const deadlineMatch = rulesData.deadline.match(/\d{1,2}\/\d{1,2}\/\d{4}|\d{4}-\d{2}-\d{2}|[A-Z][a-z]+ \d{1,2}(st|nd|rd|th)?,? \d{4}/i);
       if (deadlineMatch) {
-        const parsedDate = new Date(deadlineMatch[0]);
-        if (!isNaN(parsedDate.getTime())) {
+        const parsedDate = parseFlexibleDate(deadlineMatch[0]);
+        if (parsedDate) {
           console.log('✅ Deadline found in rules:', parsedDate.toISOString());
           setDeadline(parsedDate.toISOString());
           deadlineFound = true;
@@ -128,14 +164,14 @@ function HackathonWizard() {
       console.log('🔍 Checking intel for deadline. Project:', project);
       if (project?.custom_instructions) {
         console.log('📝 Intel content:', project.custom_instructions);
-        const intelMatch = project.custom_instructions.match(/\d{1,2}\/\d{1,2}\/\d{4}|\d{4}-\d{2}-\d{2}|[A-Z][a-z]+ \d{1,2},? \d{4}|(?:deadline|due|submit by|ends?)[:\s]+([^\n]+)/i);
+        const intelMatch = project.custom_instructions.match(/\d{1,2}\/\d{1,2}\/\d{4}|\d{4}-\d{2}-\d{2}|[A-Z][a-z]+ \d{1,2}(st|nd|rd|th)?,? \d{4}|(?:deadline|due|submit by|ends?)[:\s]+([^\n.!?]+)/i);
         console.log('🔎 Intel regex match:', intelMatch);
         if (intelMatch) {
-          const dateStr = intelMatch[1] || intelMatch[0];
+          const dateStr = intelMatch[intelMatch.length - 1] || intelMatch[0];
           console.log('📅 Date string extracted:', dateStr);
-          const parsedDate = new Date(dateStr);
+          const parsedDate = parseFlexibleDate(dateStr.trim());
           console.log('📅 Parsed date:', parsedDate);
-          if (!isNaN(parsedDate.getTime())) {
+          if (parsedDate) {
             console.log('✅ Deadline found in intel:', parsedDate.toISOString());
             setDeadline(parsedDate.toISOString());
           } else {
