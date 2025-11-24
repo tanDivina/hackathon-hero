@@ -654,8 +654,46 @@ export const databaseService = {
   },
 
   async checkProStatus(): Promise<boolean> {
-    const sessionId = getSessionId();
+    // Check if user is authenticated
+    const { data: { user } } = await supabase.auth.getUser();
 
+    if (user) {
+      // For authenticated users, first get their Stripe customer ID
+      const { data: customer } = await supabase
+        .from('stripe_customers')
+        .select('customer_id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      // Check for active Stripe subscription
+      if (customer) {
+        const { data: subscription } = await supabase
+          .from('stripe_subscriptions')
+          .select('*')
+          .eq('customer_id', customer.customer_id)
+          .eq('status', 'active')
+          .maybeSingle();
+
+        if (subscription) {
+          return true;
+        }
+      }
+
+      // Also check payments table for beta access (fallback)
+      const { data: payment } = await supabase
+        .from('payments')
+        .select('*')
+        .eq('payer_email', user.email)
+        .eq('status', 'completed')
+        .maybeSingle();
+
+      if (payment) {
+        return true;
+      }
+    }
+
+    // For non-authenticated users, check session-based payments (legacy)
+    const sessionId = getSessionId();
     const { data, error } = await supabase
       .from('payments')
       .select('*')
