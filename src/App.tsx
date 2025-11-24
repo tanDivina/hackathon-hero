@@ -441,13 +441,21 @@ function HackathonWizard() {
               {isPro ? (
                 <ProDropdown />
               ) : (
-                <button
-                  onClick={() => setShowProModal(true)}
-                  className="px-6 py-2.5 text-sm font-bold tracking-wide transition-all rounded border border-gray-700 text-gray-400 hover:border-gray-500 hover:text-white flex items-center gap-2"
-                >
-                  <Lock size={16} />
-                  UNLOCK PRO
-                </button>
+                <>
+                  <button
+                    onClick={() => navigate('/login')}
+                    className="px-6 py-2.5 text-sm font-bold tracking-wide transition-all rounded border border-gray-700 text-gray-400 hover:border-gray-500 hover:text-white"
+                  >
+                    LOGIN
+                  </button>
+                  <button
+                    onClick={() => setShowProModal(true)}
+                    className="px-6 py-2.5 text-sm font-bold tracking-wide transition-all rounded border border-gray-700 text-gray-400 hover:border-gray-500 hover:text-white flex items-center gap-2"
+                  >
+                    <Lock size={16} />
+                    UNLOCK PRO
+                  </button>
+                </>
               )}
             </div>
           </div>
