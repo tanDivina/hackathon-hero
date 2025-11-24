@@ -26,6 +26,7 @@ export const RulesParser: React.FC<RulesParserProps> = ({ onParse, onParseFromUr
   const [parsedData, setParsedData] = useState<ParsedData | null>(null);
   const [insiderIntel, setInsiderIntel] = useState('');
   const [isSavingIntel, setIsSavingIntel] = useState(false);
+  const [intelSaved, setIntelSaved] = useState(false);
 
   useEffect(() => {
     if (projectId) {
@@ -64,8 +65,11 @@ export const RulesParser: React.FC<RulesParserProps> = ({ onParse, onParseFromUr
     if (!projectId) return;
 
     setIsSavingIntel(true);
+    setIntelSaved(false);
     try {
       await databaseService.updateProject(projectId, { custom_instructions: insiderIntel });
+      setIntelSaved(true);
+      setTimeout(() => setIntelSaved(false), 3000);
     } catch (error) {
       console.error('Failed to save insider intel:', error);
     } finally {
@@ -246,8 +250,13 @@ export const RulesParser: React.FC<RulesParserProps> = ({ onParse, onParseFromUr
               disabled={isSavingIntel || !projectId}
               className="w-full bg-accent-cyan/20 border border-accent-cyan/50 text-accent-cyan font-bold py-2 text-sm tracking-wide hover:bg-accent-cyan/30 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
             >
-              {isSavingIntel ? 'SAVING...' : 'SAVE INTEL'}
+              {isSavingIntel ? 'SAVING...' : intelSaved ? 'SAVED!' : 'SAVE INTEL'}
             </button>
+            {intelSaved && (
+              <p className="text-xs text-accent-cyan text-center font-mono">
+                Intel saved! AI will use this context in idea generation and chat.
+              </p>
+            )}
           </div>
         )}
       </div>

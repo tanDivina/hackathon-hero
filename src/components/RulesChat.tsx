@@ -58,8 +58,10 @@ export const RulesChat: React.FC<RulesChatProps> = ({
   const loadRulesContext = async () => {
     if (!projectId) return;
     const rulesData = await databaseService.getRulesData(projectId);
+    const project = await databaseService.getProject(projectId);
+
     if (rulesData) {
-      const context = `
+      let context = `
 FULL HACKATHON RULES DOCUMENT:
 ${rulesData.rules_text}
 
@@ -69,6 +71,16 @@ PARSED KEY INFORMATION:
 - Judging Criteria: ${rulesData.judging_criteria.join(', ')}
 - Prizes: ${(rulesData.prizes || []).join(', ')}
       `.trim();
+
+      // Add insider intel if available
+      if (project?.custom_instructions) {
+        context += `
+
+INSIDER INTEL / LIVESTREAM NOTES:
+${project.custom_instructions}
+(These notes from sponsor Q&As or livestreams should be prioritized when answering questions)`;
+      }
+
       setRulesContext(context);
     }
   };
