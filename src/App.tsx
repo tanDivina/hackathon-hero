@@ -104,14 +104,18 @@ function HackathonWizard() {
   };
 
   const extractDeadline = async (projectId: string, rulesData: any = null) => {
+    console.log('🔍 Extracting deadline for project:', projectId);
+    console.log('📋 Rules data:', rulesData);
     let deadlineFound = false;
 
     // Try to extract deadline from rules first
     if (rulesData?.deadline && !rulesData.deadline.toLowerCase().includes('no specific deadline')) {
+      console.log('📅 Checking rules deadline:', rulesData.deadline);
       const deadlineMatch = rulesData.deadline.match(/\d{1,2}\/\d{1,2}\/\d{4}|\d{4}-\d{2}-\d{2}|[A-Z][a-z]+ \d{1,2},? \d{4}/);
       if (deadlineMatch) {
         const parsedDate = new Date(deadlineMatch[0]);
         if (!isNaN(parsedDate.getTime())) {
+          console.log('✅ Deadline found in rules:', parsedDate.toISOString());
           setDeadline(parsedDate.toISOString());
           deadlineFound = true;
         }
@@ -121,15 +125,27 @@ function HackathonWizard() {
     // If no deadline found in rules, check insider intel
     if (!deadlineFound) {
       const project = await databaseService.getProject(projectId);
+      console.log('🔍 Checking intel for deadline. Project:', project);
       if (project?.custom_instructions) {
+        console.log('📝 Intel content:', project.custom_instructions);
         const intelMatch = project.custom_instructions.match(/\d{1,2}\/\d{1,2}\/\d{4}|\d{4}-\d{2}-\d{2}|[A-Z][a-z]+ \d{1,2},? \d{4}|(?:deadline|due|submit by|ends?)[:\s]+([^\n]+)/i);
+        console.log('🔎 Intel regex match:', intelMatch);
         if (intelMatch) {
           const dateStr = intelMatch[1] || intelMatch[0];
+          console.log('📅 Date string extracted:', dateStr);
           const parsedDate = new Date(dateStr);
+          console.log('📅 Parsed date:', parsedDate);
           if (!isNaN(parsedDate.getTime())) {
+            console.log('✅ Deadline found in intel:', parsedDate.toISOString());
             setDeadline(parsedDate.toISOString());
+          } else {
+            console.log('❌ Invalid date parsed from intel');
           }
+        } else {
+          console.log('❌ No date match found in intel');
         }
+      } else {
+        console.log('❌ No intel found');
       }
     }
   };
