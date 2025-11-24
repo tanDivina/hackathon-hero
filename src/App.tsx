@@ -99,6 +99,11 @@ function HackathonWizard() {
     const rulesData = await databaseService.getRulesData(currentProject.id);
     setHasRules(!!rulesData);
 
+    // Extract deadline from both rules and intel
+    await extractDeadline(currentProject.id, rulesData);
+  };
+
+  const extractDeadline = async (projectId: string, rulesData: any = null) => {
     let deadlineFound = false;
 
     // Try to extract deadline from rules first
@@ -115,7 +120,7 @@ function HackathonWizard() {
 
     // If no deadline found in rules, check insider intel
     if (!deadlineFound) {
-      const project = await databaseService.getProject(currentProject.id);
+      const project = await databaseService.getProject(projectId);
       if (project?.custom_instructions) {
         const intelMatch = project.custom_instructions.match(/\d{1,2}\/\d{1,2}\/\d{4}|\d{4}-\d{2}-\d{2}|[A-Z][a-z]+ \d{1,2},? \d{4}|(?:deadline|due|submit by|ends?)[:\s]+([^\n]+)/i);
         if (intelMatch) {
@@ -174,33 +179,9 @@ function HackathonWizard() {
       });
       setHasRules(true);
 
-      // Try to extract deadline from rules first
-      let deadlineFound = false;
-      if (result.deadline && !result.deadline.toLowerCase().includes('no specific deadline')) {
-        const deadlineMatch = result.deadline.match(/\d{1,2}\/\d{1,2}\/\d{4}|\d{4}-\d{2}-\d{2}|[A-Z][a-z]+ \d{1,2},? \d{4}/);
-        if (deadlineMatch) {
-          const parsedDate = new Date(deadlineMatch[0]);
-          if (!isNaN(parsedDate.getTime())) {
-            setDeadline(parsedDate.toISOString());
-            deadlineFound = true;
-          }
-        }
-      }
-
-      // If no deadline found in rules, check insider intel
-      if (!deadlineFound) {
-        const project = await databaseService.getProject(currentProject.id);
-        if (project?.custom_instructions) {
-          const intelMatch = project.custom_instructions.match(/\d{1,2}\/\d{1,2}\/\d{4}|\d{4}-\d{2}-\d{2}|[A-Z][a-z]+ \d{1,2},? \d{4}|(?:deadline|due|submit by|ends?)[:\s]+([^\n]+)/i);
-          if (intelMatch) {
-            const dateStr = intelMatch[1] || intelMatch[0];
-            const parsedDate = new Date(dateStr);
-            if (!isNaN(parsedDate.getTime())) {
-              setDeadline(parsedDate.toISOString());
-            }
-          }
-        }
-      }
+      // Extract deadline from both rules and intel
+      const rulesData = await databaseService.getRulesData(currentProject.id);
+      await extractDeadline(currentProject.id, rulesData);
 
       setIsSaving(false);
     }
@@ -492,6 +473,12 @@ function HackathonWizard() {
               isPro={isPro}
               projectId={currentProject?.id}
               onUpgradeClick={() => setShowProModal(true)}
+              onIntelSaved={async () => {
+                if (currentProject) {
+                  const rulesData = await databaseService.getRulesData(currentProject.id);
+                  await extractDeadline(currentProject.id, rulesData);
+                }
+              }}
             />
             <RulesChat
               projectId={currentProject?.id}

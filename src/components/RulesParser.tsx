@@ -16,9 +16,10 @@ interface RulesParserProps {
   isPro: boolean;
   projectId?: string;
   onUpgradeClick: () => void;
+  onIntelSaved?: () => void | Promise<void>;
 }
 
-export const RulesParser: React.FC<RulesParserProps> = ({ onParse, onParseFromUrl, isPro, projectId, onUpgradeClick }) => {
+export const RulesParser: React.FC<RulesParserProps> = ({ onParse, onParseFromUrl, isPro, projectId, onUpgradeClick, onIntelSaved }) => {
   const [rulesText, setRulesText] = useState('');
   const [hackathonUrl, setHackathonUrl] = useState('');
   const [inputMode, setInputMode] = useState<'text' | 'url'>('text');
@@ -69,6 +70,12 @@ export const RulesParser: React.FC<RulesParserProps> = ({ onParse, onParseFromUr
     try {
       await databaseService.updateProject(projectId, { custom_instructions: insiderIntel });
       setIntelSaved(true);
+
+      // Trigger deadline extraction in parent component
+      if (onIntelSaved) {
+        await onIntelSaved();
+      }
+
       setTimeout(() => setIntelSaved(false), 3000);
     } catch (error) {
       console.error('Failed to save insider intel:', error);
