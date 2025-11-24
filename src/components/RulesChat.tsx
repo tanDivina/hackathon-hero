@@ -185,10 +185,6 @@ ${project.custom_instructions}
           <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6 scrollbar-thin scrollbar-thumb-gray-800 scrollbar-track-transparent">
             {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full space-y-6">
-                <div className="text-center mb-4">
-                  <Bot className="mx-auto mb-3 text-accent-cyan" size={48} strokeWidth={1.5} />
-                  <p className="text-gray-400 text-sm">Ask anything about your hackathon rules</p>
-                </div>
                 <div className="grid grid-cols-1 gap-3 w-full max-w-md">
                   {SUGGESTION_PROMPTS.map((prompt, idx) => (
                     <button
