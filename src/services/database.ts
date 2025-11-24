@@ -684,14 +684,16 @@ export const databaseService = {
       }
 
       // Also check payments table for beta access (fallback)
-      const { data: payment } = await supabase
+      const { data: payments, error: paymentError } = await supabase
         .from('payments')
         .select('*')
         .eq('payer_email', user.email)
         .eq('status', 'completed')
-        .maybeSingle();
+        .limit(1);
 
-      if (payment) {
+      console.log('Payment query result:', { payments, paymentError, email: user.email, count: payments?.length });
+
+      if (payments && payments.length > 0) {
         console.log('Pro status: true (payment record found)');
         return true;
       }
