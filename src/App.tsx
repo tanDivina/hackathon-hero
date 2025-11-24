@@ -530,7 +530,7 @@ function HackathonWizard() {
             <p className="text-gray-400 leading-relaxed mb-2">
               Paste the hackathon rules or provide a URL. Our AI will extract:
             </p>
-            <ul className="list-disc list-inside text-gray-400 space-y-1 ml-4">
+            <ul className="list-disc list-outside text-gray-400 space-y-1 ml-4 pl-4">
               <li>Submission deadline</li>
               <li>Sponsors and their technologies</li>
               <li>Judging criteria</li>
@@ -557,7 +557,7 @@ function HackathonWizard() {
             <p className="text-gray-400 leading-relaxed mb-2">
               Choose from three script types:
             </p>
-            <ul className="list-disc list-inside text-gray-400 space-y-1 ml-4">
+            <ul className="list-disc list-outside text-gray-400 space-y-1 ml-4 pl-4">
               <li><strong className="text-white">Pitch:</strong> Problem, solution, traction framework</li>
               <li><strong className="text-white">Demo:</strong> Requirements, tools, real-world use</li>
               <li><strong className="text-white">Intro (20s):</strong> Who, what, why format</li>
@@ -573,7 +573,7 @@ function HackathonWizard() {
 
           <section>
             <h3 className="text-lg font-bold text-white mb-2">Pro Features</h3>
-            <ul className="list-disc list-inside text-gray-400 space-y-1 ml-4">
+            <ul className="list-disc list-outside text-gray-400 space-y-1 ml-4 pl-4">
               <li>Chat with Rules AI assistant</li>
               <li>Parse rules from URLs</li>
               <li>Video Creator with logo and audio</li>
@@ -584,7 +584,7 @@ function HackathonWizard() {
 
           <section>
             <h3 className="text-lg font-bold text-white mb-2">Tips for Success</h3>
-            <ul className="list-disc list-inside text-gray-400 space-y-1 ml-4">
+            <ul className="list-disc list-outside text-gray-400 space-y-1 ml-4 pl-4">
               <li>Always parse rules first to get context-aware suggestions</li>
               <li>Review sponsor technologies and align your idea</li>
               <li>Watch sponsor livestreams and Q&A sessions - they often reveal what judges want to see beyond the written rules</li>
