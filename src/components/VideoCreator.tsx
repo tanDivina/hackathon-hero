@@ -410,7 +410,10 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
       { title: 'SOLUTION', text: pitchScript.solution },
       { title: 'TRACTION', text: pitchScript.traction },
     ]
-  ) : [];
+  ) : [
+    { title: 'READY TO RECORD', text: 'Your pitch script will appear here once generated. For now, this is a placeholder to test your teleprompter settings.' },
+    { title: 'SAMPLE SECTION', text: 'The text scrolls automatically when you hit record. Look at the camera lens, not the text.' }
+  ];
 
   return (
     <CyberCard
@@ -528,7 +531,11 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
       >
 
          <canvas ref={canvasRef} className="w-full h-full object-cover absolute inset-0"/>
-         <video ref={previewVideoRef} className={`w-full h-full object-cover transform -scale-x-100 ${isRecording ? 'hidden' : 'block'}`} playsInline muted autoPlay />
+         <video
+            ref={previewVideoRef}
+            className={`w-full h-full object-cover absolute inset-0 transform -scale-x-100 ${enableAI || isRecording ? 'hidden' : 'block'}`}
+            playsInline muted autoPlay
+         />
          <video ref={videoRef} className="hidden" playsInline muted autoPlay />
 
          {showPreview && (
@@ -557,12 +564,12 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
          )}
 
          {showPreview && (
-           <div className="absolute inset-0 z-10 flex flex-col pointer-events-none">
+           <div className="absolute inset-0 z-20 flex flex-col pointer-events-none">
              <div className="h-32 bg-gradient-to-b from-black via-black/80 to-transparent z-20 pointer-events-none" />
 
              <div
                 ref={teleprompterRef}
-                className="flex-1 overflow-y-hidden text-center px-12 no-scrollbar"
+                className="flex-1 overflow-y-auto text-center px-12 no-scrollbar"
                 style={{
                   transform: isMirrored ? 'scaleX(-1)' : 'none',
                   scrollBehavior: 'auto'
