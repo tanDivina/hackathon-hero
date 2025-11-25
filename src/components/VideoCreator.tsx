@@ -1,5 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Film, Upload, Music, Image, Download, Video, Settings, Sparkles } from 'lucide-react';
+import {
+  Film, Music, Video, Sparkles, Cpu, Image as ImageIcon,
+  Mic, Palette, Wand2, Download,
+  Play, Pause, Type, MoveVertical, FlipHorizontal
+} from 'lucide-react';
 import { CyberCard } from './CyberCard';
 import { databaseService } from '../services/database';
 import { FFmpeg } from '@ffmpeg/ffmpeg';
@@ -24,49 +28,85 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
   const [logoFile, setLogoFile] = useState<string>('');
   const [audioFile, setAudioFile] = useState<string>('');
   const [logoPosition, setLogoPosition] = useState<string>('top-right');
-  const [logoSize, setLogoSize] = useState<number>(100);
-  const [audioVolume, setAudioVolume] = useState<number>(0.5);
+  const [logoSize, setLogoSize] = useState<number>(150);
+  const [audioVolume, setAudioVolume] = useState<number>(0.3);
+
   const [isRecording, setIsRecording] = useState(false);
-  const [showTeleprompter, setShowTeleprompter] = useState(false);
-  const [currentSection, setCurrentSection] = useState<number>(0);
-  const [timeRemaining, setTimeRemaining] = useState<number>(0);
-  const [recordingProgress, setRecordingProgress] = useState<number>(0);
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const [timeLeftDisplay, setTimeLeftDisplay] = useState<number>(180);
+  const [showPreview, setShowPreview] = useState(false);
   const [outputFormat, setOutputFormat] = useState<'webm' | 'mp4'>('webm');
   const [isConverting, setIsConverting] = useState(false);
   const [conversionProgress, setConversionProgress] = useState<number>(0);
+
+  const [scrollSpeed, setScrollSpeed] = useState<number>(2);
+  const [fontSize, setFontSize] = useState<number>(32);
+  const [isMirrored, setIsMirrored] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [showPrompterControls, setShowPrompterControls] = useState(true);
+
+  const [enableAI, setEnableAI] = useState(false);
+  const [bgMode, setBgMode] = useState<'blur' | 'image'>('blur');
+  const [virtualBgImage, setVirtualBgImage] = useState<HTMLImageElement | null>(null);
+  const [videoFilter, setVideoFilter] = useState<'none' | 'cinematic' | 'noir' | 'warm'>('none');
+  const [isGeneratingLogo, setIsGeneratingLogo] = useState(false);
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const audioRef = useRef<HTMLAudioElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const previewVideoRef = useRef<HTMLVideoElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const ffmpegRef = useRef<FFmpeg | null>(null);
-  const recordedBlobRef = useRef<Blob | null>(null);
 
-  const sections = pitchScript ? (
-    pitchScript.script_type === 'demo' ? [
-      { title: 'PROBLEM', text: pitchScript.problem, duration: 45 },
-      { title: 'REQUIREMENTS', text: pitchScript.requirements || '', duration: 30 },
-      { title: 'SOLUTION', text: pitchScript.solution, duration: 60 },
-      { title: 'TOOLS', text: pitchScript.tools || '', duration: 30 },
-      { title: 'REAL-WORLD USE', text: pitchScript.realworld_use || '', duration: 30 },
-      { title: 'TRACTION', text: pitchScript.traction, duration: 15 },
-    ] : [
-      { title: 'PROBLEM', text: pitchScript.problem, duration: 60 },
-      { title: 'SOLUTION', text: pitchScript.solution, duration: 90 },
-      { title: 'TRACTION', text: pitchScript.traction, duration: 30 },
-    ]
-  ) : [];
+  const teleprompterRef = useRef<HTMLDivElement>(null);
+  const logoImageRef = useRef<HTMLImageElement | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const audioVisualizerCanvasRef = useRef<HTMLCanvasElement>(null);
+  const animationFrameRef = useRef<number | null>(null);
+  const scrollFrameRef = useRef<number | null>(null);
+  const visualizerFrameRef = useRef<number | null>(null);
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const startTimeRef = useRef<number>(0);
+  const bgAudioElementRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    if (projectId) {
-      loadSavedAssets();
-    } else {
-      resetAssets();
-    }
+    if (projectId) loadSavedAssets();
+    else resetAssets();
+    return () => cleanupResources();
   }, [projectId]);
+
+  useEffect(() => {
+    const scrollLoop = () => {
+      if (isRecording && !isPaused && teleprompterRef.current) {
+        const pixelsPerFrame = scrollSpeed * 0.3;
+        teleprompterRef.current.scrollTop += pixelsPerFrame;
+      }
+      scrollFrameRef.current = requestAnimationFrame(scrollLoop);
+    };
+
+    if (isRecording) {
+      scrollFrameRef.current = requestAnimationFrame(scrollLoop);
+    } else {
+      if (scrollFrameRef.current) cancelAnimationFrame(scrollFrameRef.current);
+    }
+
+    return () => {
+      if (scrollFrameRef.current) cancelAnimationFrame(scrollFrameRef.current);
+    };
+  }, [isRecording, isPaused, scrollSpeed]);
+
+  const cleanupResources = () => {
+    if (videoRef.current?.srcObject) {
+      (videoRef.current.srcObject as MediaStream).getTracks().forEach(t => t.stop());
+    }
+    if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+    if (visualizerFrameRef.current) cancelAnimationFrame(visualizerFrameRef.current);
+    if (scrollFrameRef.current) cancelAnimationFrame(scrollFrameRef.current);
+    if (audioContextRef.current) audioContextRef.current.close();
+    if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+  };
 
   const loadSavedAssets = async () => {
     if (!projectId) return;
-
     const assets = await databaseService.getVideoAssets(projectId);
     if (assets) {
       setLogoFile(assets.logo_url);
@@ -74,593 +114,581 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
       setLogoPosition(assets.logo_position);
       setLogoSize(assets.logo_size);
       setAudioVolume(assets.audio_volume);
-    } else {
-      resetAssets();
+      if (assets.logo_url) {
+        const img = new Image();
+        img.src = assets.logo_url;
+        img.crossOrigin = "anonymous";
+        logoImageRef.current = img;
+      }
     }
   };
 
   const resetAssets = () => {
-    setLogoFile('');
-    setAudioFile('');
-    setLogoPosition('top-right');
-    setLogoSize(100);
-    setAudioVolume(0.5);
+    setLogoFile(''); setAudioFile(''); setLogoPosition('top-right'); setLogoSize(150); setAudioVolume(0.3);
   };
 
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        const dataUrl = event.target?.result as string;
-        setLogoFile(dataUrl);
-        await saveAssets(dataUrl, audioFile, logoPosition, logoSize, audioVolume);
-      };
-      reader.readAsDataURL(file);
+  const handleGenerateLogo = async () => {
+    if (!pitchScript?.problem) {
+      alert("Please generate a pitch script first!");
+      return;
     }
-  };
-
-  const handleAudioUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        const dataUrl = event.target?.result as string;
-        setAudioFile(dataUrl);
-        await saveAssets(logoFile, dataUrl, logoPosition, logoSize, audioVolume);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const saveAssets = async (
-    logo: string,
-    audio: string,
-    position: string,
-    size: number,
-    volume: number
-  ) => {
-    if (!projectId) return;
-
-    await databaseService.saveVideoAssets(projectId, {
-      logo_url: logo,
-      audio_url: audio,
-      logo_position: position,
-      logo_size: size,
-      audio_volume: volume,
-    });
-  };
-
-  const handlePositionChange = async (position: string) => {
-    setLogoPosition(position);
-    await saveAssets(logoFile, audioFile, position, logoSize, audioVolume);
-  };
-
-  const handleSizeChange = async (size: number) => {
-    setLogoSize(size);
-    await saveAssets(logoFile, audioFile, logoPosition, size, audioVolume);
-  };
-
-  const handleVolumeChange = async (volume: number) => {
-    setAudioVolume(volume);
-    await saveAssets(logoFile, audioFile, logoPosition, logoSize, volume);
-  };
-
-  const handleStartRecording = async () => {
-    if (!pitchScript) return;
-
+    setIsGeneratingLogo(true);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          width: 1920,
-          height: 1080,
-          facingMode: 'user',
-        },
-        audio: true,
+      const contextPrompt = `A startup solving: "${pitchScript.problem.substring(0, 100)}..." using: "${pitchScript.solution.substring(0, 50)}..."`;
+      const response = await fetch('/api/generate-logo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: contextPrompt })
       });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Generation failed');
+      setLogoFile(data.url);
+      const img = new Image();
+      img.src = data.url;
+      img.crossOrigin = "anonymous";
+      img.onload = () => { logoImageRef.current = img; };
+    } catch (error) {
+      console.error("Logo Gen Error:", error);
+      alert("Failed to generate logo. This feature requires additional API configuration.");
+    } finally {
+      setIsGeneratingLogo(false);
+    }
+  };
 
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.play();
-      }
+  const setupAudioContext = (stream: MediaStream) => {
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    const ctx = new AudioContextClass();
+    audioContextRef.current = ctx;
 
-      const canvas = canvasRef.current;
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 64;
+
+    const micSource = ctx.createMediaStreamSource(stream);
+    micSource.connect(analyser);
+
+    const destination = ctx.createMediaStreamDestination();
+    micSource.connect(destination);
+
+    if (audioFile && bgAudioElementRef.current) {
+      const musicSource = ctx.createMediaElementSource(bgAudioElementRef.current);
+      const gainNode = ctx.createGain();
+      gainNode.gain.value = audioVolume;
+      musicSource.connect(gainNode);
+      gainNode.connect(destination);
+      gainNode.connect(ctx.destination);
+    }
+    startVisualizerLoop(analyser);
+    return destination.stream.getAudioTracks();
+  };
+
+  const startVisualizerLoop = (analyser: AnalyserNode) => {
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+    const draw = () => {
+      const canvas = audioVisualizerCanvasRef.current;
       if (!canvas) return;
-
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
-
-      canvas.width = 1920;
-      canvas.height = 1080;
-
-      const canvasStream = canvas.captureStream(30);
-
-      const audioTracks = stream.getAudioTracks();
-      audioTracks.forEach(track => canvasStream.addTrack(track));
-
-      if (audioFile && audioRef.current) {
-        audioRef.current.volume = audioVolume;
-        audioRef.current.play();
+      visualizerFrameRef.current = requestAnimationFrame(draw);
+      analyser.getByteFrequencyData(dataArray);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const barWidth = (canvas.width / bufferLength) * 2.5;
+      let x = 0;
+      for (let i = 0; i < bufferLength; i++) {
+        const barHeight = (dataArray[i] / 255) * canvas.height;
+        ctx.fillStyle = `hsl(${100 + (barHeight/canvas.height)*60}, 100%, 50%)`;
+        ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+        x += barWidth + 1;
       }
+    };
+    draw();
+  };
 
-      const mediaRecorder = new MediaRecorder(canvasStream, {
-        mimeType: 'video/webm;codecs=vp9',
-        videoBitsPerSecond: 5000000,
+  const startPreview = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: { ideal: 1920 }, height: { ideal: 1080 }, facingMode: 'user' },
+        audio: true
       });
-
-      const chunks: Blob[] = [];
-
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) {
-          chunks.push(e.data);
-        }
-      };
-
-      mediaRecorder.onstop = async () => {
-        const blob = new Blob(chunks, { type: 'video/webm' });
-        recordedBlobRef.current = blob;
-        console.log('Recording complete. Blob size:', blob.size, 'bytes');
-
-        stream.getTracks().forEach(track => track.stop());
-        setIsRecording(false);
-        setShowTeleprompter(false);
-        setCurrentSection(0);
-        setTimeRemaining(0);
-        setRecordingProgress(0);
-
-        if (outputFormat === 'mp4') {
-          if (blob.size === 0) {
-            alert('Recording failed: No video data captured');
-            return;
-          }
-          await convertToMp4(blob);
-        } else {
-          downloadVideo(blob, 'webm');
-        }
-      };
-
-      mediaRecorderRef.current = mediaRecorder;
-      mediaRecorder.start();
-      setIsRecording(true);
-      setShowTeleprompter(true);
-      setCurrentSection(0);
-      setTimeRemaining(180);
-
-      const startTime = Date.now();
-      const totalDuration = 180000;
-
-      const animate = () => {
-        if (!videoRef.current || !canvas || !ctx) return;
-
-        const elapsed = Date.now() - startTime;
-        const remaining = Math.max(0, 180 - Math.floor(elapsed / 1000));
-        setTimeRemaining(remaining);
-        setRecordingProgress((elapsed / totalDuration) * 100);
-
-        let cumulativeTime = 0;
-        let activeSection = 0;
-        for (let i = 0; i < sections.length; i++) {
-          cumulativeTime += sections[i].duration * 1000;
-          if (elapsed < cumulativeTime) {
-            activeSection = i;
-            break;
-          }
-          activeSection = sections.length - 1;
-        }
-        setCurrentSection(activeSection);
-
-        ctx.fillStyle = '#000000';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        ctx.save();
-        ctx.scale(-1, 1);
-        ctx.drawImage(videoRef.current, -canvas.width, 0, canvas.width, canvas.height);
-        ctx.restore();
-
-        if (logoFile) {
-          const img = new Image();
-          img.onload = () => {
-            const size = logoSize;
-            let x = 0;
-            let y = 0;
-
-            switch (logoPosition) {
-              case 'top-left':
-                x = 50;
-                y = 50;
-                break;
-              case 'top-right':
-                x = canvas.width - size - 50;
-                y = 50;
-                break;
-              case 'bottom-left':
-                x = 50;
-                y = canvas.height - size - 50;
-                break;
-              case 'bottom-right':
-                x = canvas.width - size - 50;
-                y = canvas.height - size - 50;
-                break;
-              case 'center':
-                x = (canvas.width - size) / 2;
-                y = (canvas.height - size) / 2;
-                break;
-            }
-
-            ctx.drawImage(img, x, y, size, size);
-          };
-          img.src = logoFile;
-        }
-
-        if (elapsed < totalDuration) {
-          requestAnimationFrame(animate);
-        } else {
-          mediaRecorder.stop();
-          if (audioRef.current) {
-            audioRef.current.pause();
-            audioRef.current.currentTime = 0;
-          }
-        }
-      };
-
-      animate();
-    } catch (error) {
-      console.error('Error starting recording:', error);
-      setIsRecording(false);
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+      if (previewVideoRef.current) {
+        previewVideoRef.current.srcObject = stream;
+        await previewVideoRef.current.play();
+      }
+      setupAudioContext(stream);
+      setShowPreview(true);
+      startRenderingLoop();
+    } catch (e) {
+      console.error(e);
+      alert("Camera access denied.");
     }
+  };
+
+  const startRenderingLoop = () => {
+    const loop = async () => {
+      if (!videoRef.current || videoRef.current.paused || videoRef.current.ended) {
+        animationFrameRef.current = requestAnimationFrame(loop);
+        return;
+      }
+      drawStandardFrame();
+      animationFrameRef.current = requestAnimationFrame(loop);
+    };
+    loop();
+  };
+
+  const applyFilters = (ctx: CanvasRenderingContext2D) => {
+    switch (videoFilter) {
+      case 'cinematic': ctx.filter = 'contrast(1.1) saturate(1.2) brightness(0.95)'; break;
+      case 'noir': ctx.filter = 'grayscale(1) contrast(1.2) brightness(0.9)'; break;
+      case 'warm': ctx.filter = 'sepia(0.2) contrast(1.05) saturate(1.1)'; break;
+      default: ctx.filter = 'none';
+    }
+  };
+
+  const drawStandardFrame = () => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    const video = videoRef.current;
+    if (!canvas || !ctx || !video) return;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    ctx.save();
+
+    if (enableAI && bgMode === 'blur') {
+      ctx.filter = 'blur(15px)';
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      ctx.filter = 'none';
+    } else if (enableAI && bgMode === 'image' && virtualBgImage) {
+      const scale = Math.max(canvas.width / virtualBgImage.width, canvas.height / virtualBgImage.height);
+      const x = (canvas.width / 2) - (virtualBgImage.width / 2) * scale;
+      const y = (canvas.height / 2) - (virtualBgImage.height / 2) * scale;
+      ctx.drawImage(virtualBgImage, x, y, virtualBgImage.width * scale, virtualBgImage.height * scale);
+    }
+
+    ctx.translate(canvas.width, 0);
+    ctx.scale(-1, 1);
+    applyFilters(ctx);
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    ctx.restore();
+    drawLogo(ctx, canvas.width, canvas.height);
+  };
+
+  const drawLogo = (ctx: CanvasRenderingContext2D, w: number, h: number) => {
+    if (logoImageRef.current) {
+      const size = logoSize;
+      let x = 20, y = 20;
+      if (logoPosition.includes('right')) x = w - size - 40;
+      if (logoPosition.includes('center')) x = (w - size) / 2;
+      if (logoPosition.includes('bottom')) y = h - size - 40;
+      if (logoPosition === 'center') y = (h - size) / 2;
+      ctx.drawImage(logoImageRef.current, x, y, size, size);
+    }
+  };
+
+  const initiateRecordingSequence = () => {
+    if (teleprompterRef.current) teleprompterRef.current.scrollTop = 0;
+
+    setCountdown(3);
+    const countInterval = setInterval(() => {
+      setCountdown(prev => {
+        if (prev === 1) {
+          clearInterval(countInterval);
+          startActualRecording();
+          return null;
+        }
+        return prev ? prev - 1 : null;
+      });
+    }, 1000);
+  };
+
+  const startActualRecording = async () => {
+    const canvas = canvasRef.current;
+    if (!canvas || !videoRef.current) return;
+
+    let mixedTracks: MediaStreamTrack[] = [];
+    if (audioContextRef.current) {
+        const stream = videoRef.current.srcObject as MediaStream;
+        mixedTracks = stream.getAudioTracks();
+        if (audioFile && bgAudioElementRef.current) {
+          bgAudioElementRef.current.currentTime = 0;
+          bgAudioElementRef.current.play();
+        }
+    }
+
+    const canvasStream = canvas.captureStream(30);
+    mixedTracks.forEach(t => canvasStream.addTrack(t));
+
+    const recorder = new MediaRecorder(canvasStream, {
+        mimeType: 'video/webm;codecs=vp9',
+        videoBitsPerSecond: 3000000
+    });
+
+    const chunks: Blob[] = [];
+    recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+    recorder.onstop = () => finalizeRecording(new Blob(chunks, { type: 'video/webm' }));
+
+    mediaRecorderRef.current = recorder;
+    recorder.start(1000);
+
+    setIsRecording(true);
+    startTimeRef.current = Date.now();
+
+    timerIntervalRef.current = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
+      const remaining = Math.max(0, 180 - elapsed);
+      setTimeLeftDisplay(remaining);
+      if (remaining === 0) handleStopRecording();
+    }, 1000);
   };
 
   const handleStopRecording = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop();
-    }
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-    }
+    if (mediaRecorderRef.current?.state !== 'inactive') mediaRecorderRef.current?.stop();
+    if (bgAudioElementRef.current) bgAudioElementRef.current.pause();
+    if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    setIsRecording(false);
   };
 
-  const loadFFmpeg = async () => {
-    if (ffmpegRef.current && ffmpegRef.current.loaded) {
-      console.log('FFmpeg already loaded');
-      return ffmpegRef.current;
+  const finalizeRecording = async (blob: Blob) => {
+    if (outputFormat === 'mp4') {
+       await convertToMp4(blob);
+    } else {
+       downloadVideo(blob, 'webm');
     }
-
-    console.log('Loading FFmpeg...');
-    const ffmpeg = new FFmpeg();
-
-    ffmpeg.on('log', ({ message }) => {
-      console.log('FFmpeg log:', message);
-    });
-
-    ffmpeg.on('progress', ({ progress }) => {
-      const percent = Math.round(progress * 100);
-      console.log('FFmpeg progress:', percent);
-      if (percent > 20) {
-        setConversionProgress(20 + Math.round(percent * 0.6));
-      }
-    });
-
-    try {
-      const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
-      console.log('Fetching FFmpeg core files...');
-      await ffmpeg.load({
-        coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
-        wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
-      });
-      console.log('FFmpeg loaded successfully');
-    } catch (error) {
-      console.error('Failed to load FFmpeg:', error);
-      throw new Error('Failed to load video converter. Please try again.');
-    }
-
-    ffmpegRef.current = ffmpeg;
-    return ffmpeg;
   };
 
   const convertToMp4 = async (webmBlob: Blob) => {
+    setIsConverting(true);
     try {
-      setIsConverting(true);
-      setConversionProgress(5);
-
-      const ffmpeg = await loadFFmpeg();
-      setConversionProgress(10);
-
-      console.log('Writing input file...');
-      await ffmpeg.writeFile('input.webm', await fetchFile(webmBlob));
-      setConversionProgress(20);
-
-      console.log('Starting conversion...');
-      await ffmpeg.exec([
-        '-i', 'input.webm',
-        '-c:v', 'libx264',
-        '-preset', 'ultrafast',
-        '-crf', '28',
-        '-c:a', 'aac',
-        '-b:a', '128k',
-        '-movflags', '+faststart',
-        'output.mp4'
-      ]);
-
-      setConversionProgress(80);
-      console.log('Reading output file...');
-      const data = await ffmpeg.readFile('output.mp4');
-      const mp4Blob = new Blob([data], { type: 'video/mp4' });
-
-      setConversionProgress(90);
-      downloadVideo(mp4Blob, 'mp4');
-
-      setConversionProgress(95);
-      await ffmpeg.deleteFile('input.webm');
-      await ffmpeg.deleteFile('output.mp4');
-
-      setIsConverting(false);
-      setConversionProgress(0);
-    } catch (error) {
-      console.error('Error converting to MP4:', error);
-      alert(`Failed to convert video: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      setIsConverting(false);
-      setConversionProgress(0);
-
-      if (recordedBlobRef.current) {
-        downloadVideo(recordedBlobRef.current, 'webm');
-      }
+        if (!ffmpegRef.current) {
+            const ffmpeg = new FFmpeg();
+            const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
+            await ffmpeg.load({
+                coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
+                wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+            });
+            ffmpegRef.current = ffmpeg;
+        }
+        const ffmpeg = ffmpegRef.current;
+        ffmpeg.on('progress', ({ progress }) => setConversionProgress(Math.round(progress * 100)));
+        await ffmpeg.writeFile('input.webm', await fetchFile(webmBlob));
+        await ffmpeg.exec(['-i', 'input.webm', '-c:v', 'copy', 'output.mp4']);
+        const data = await ffmpeg.readFile('output.mp4');
+        downloadVideo(new Blob([data], { type: 'video/mp4' }), 'mp4');
+        await ffmpeg.deleteFile('input.webm');
+        await ffmpeg.deleteFile('output.mp4');
+    } catch (e) {
+        console.error(e);
+        alert("Conversion failed. Downloading WebM.");
+        downloadVideo(webmBlob, 'webm');
+    } finally {
+        setIsConverting(false);
     }
   };
 
-  const downloadVideo = (blob: Blob, format: 'webm' | 'mp4') => {
+  const downloadVideo = (blob: Blob, ext: string) => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `pitch-video.${format}`;
+    a.download = `pitch-video-${Date.now()}.${ext}`;
     a.click();
-    URL.revokeObjectURL(url);
   };
+
+  const sections = pitchScript ? (
+    pitchScript.script_type === 'demo' ? [
+      { title: 'PROBLEM', text: pitchScript.problem },
+      { title: 'REQUIREMENTS', text: pitchScript.requirements || '' },
+      { title: 'SOLUTION', text: pitchScript.solution },
+      { title: 'TOOLS', text: pitchScript.tools || '' },
+      { title: 'REAL-WORLD USE', text: pitchScript.realworld_use || '' },
+      { title: 'TRACTION', text: pitchScript.traction },
+    ] : [
+      { title: 'PROBLEM', text: pitchScript.problem },
+      { title: 'SOLUTION', text: pitchScript.solution },
+      { title: 'TRACTION', text: pitchScript.traction },
+    ]
+  ) : [];
 
   return (
     <CyberCard
       icon={<Film size={32} strokeWidth={1.5} />}
-      title="Video Creator"
-      description="Record a 3-minute pitch video with teleprompter, custom logo overlay, and background music."
-      badge={isPro ? (logoFile || audioFile ? 'CONFIGURED' : 'PRO') : undefined}
+      title="Video Creator Studio"
+      description="Professional recording suite with Auto-Scroll Teleprompter & AI."
+      badge={isPro ? 'STUDIO UNLOCKED' : 'PRO LOCKED'}
     >
+      <audio ref={bgAudioElementRef} src={audioFile} loop crossOrigin="anonymous" />
+
       {!isPro ? (
         <div className="text-center py-8">
-          <div className="inline-flex items-center gap-2 bg-gradient-to-r from-accent-yellow/20 to-accent-cyan/20 border border-accent-yellow/30 px-4 py-2 mb-4">
-            <Sparkles size={20} className="text-accent-yellow" />
-            <span className="text-sm font-mono text-gray-300">PRO FEATURE</span>
-          </div>
-          <p className="text-gray-400 mb-4">
-            Record professional 3-minute pitch videos with teleprompter, custom branding, and background music.
-          </p>
-          <button
-            onClick={onUpgradeClick}
-            className="bg-accent-yellow text-black px-6 py-2 font-mono font-bold hover:bg-yellow-300 transition-colors"
-          >
-            UPGRADE TO PRO
-          </button>
+           <p className="text-gray-400 mb-4">Upgrade to access AI Tools, Green Screen, and Teleprompter.</p>
+           <button onClick={onUpgradeClick} className="bg-accent-yellow text-black px-6 py-2 font-bold hover:bg-white">UPGRADE TO PRO</button>
         </div>
       ) : (
-        <div className="space-y-4">
-          {!pitchScript && (
-            <div className="bg-black/50 border border-gray-800 p-4 text-center">
-              <p className="text-xs text-gray-500 font-mono">
-                Generate a pitch script first to create a video
-              </p>
-            </div>
-          )}
+      <>
+      {!isRecording && (
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
 
-        {!isRecording && !showTeleprompter && (
-          <>
-            <div className="space-y-3">
-              <div className="border border-gray-800 p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <label className="text-xs text-gray-500 font-mono uppercase tracking-wider flex items-center gap-2">
-                    <Image size={14} />
-                    Logo Upload
-                  </label>
-                  {logoFile && (
-                    <span className="text-xs text-accent-yellow font-mono">UPLOADED</span>
-                  )}
-                </div>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleLogoUpload}
-                  className="w-full text-xs text-gray-400 file:mr-4 file:py-2 file:px-4 file:border file:border-gray-800 file:text-gray-300 file:bg-black hover:file:bg-black/50 file:transition-colors"
-                />
-              </div>
-
-              <div className="border border-gray-800 p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <label className="text-xs text-gray-500 font-mono uppercase tracking-wider flex items-center gap-2">
-                    <Music size={14} />
-                    Background Music
-                  </label>
-                  {audioFile && (
-                    <span className="text-xs text-accent-yellow font-mono">UPLOADED</span>
-                  )}
-                </div>
-                <input
-                  type="file"
-                  accept="audio/*"
-                  onChange={handleAudioUpload}
-                  className="w-full text-xs text-gray-400 file:mr-4 file:py-2 file:px-4 file:border file:border-gray-800 file:text-gray-300 file:bg-black hover:file:bg-black/50 file:transition-colors"
-                />
-              </div>
-
-              <div className="border border-gray-800 p-4">
-                <label className="text-xs text-gray-500 font-mono uppercase tracking-wider flex items-center gap-2 mb-3">
-                  <Download size={14} />
-                  Output Format
-                </label>
-                <select
-                  value={outputFormat}
-                  onChange={(e) => setOutputFormat(e.target.value as 'webm' | 'mp4')}
-                  className="w-full bg-black border border-gray-800 px-3 py-2 text-sm text-gray-300 focus:border-gray-700 focus:outline-none"
-                >
-                  <option value="webm">WebM (recommended - instant download)</option>
-                  <option value="mp4">MP4 (requires conversion - may be slow)</option>
-                </select>
-              </div>
-            </div>
-
-            {logoFile && (
-              <div className="border border-gray-800 p-4 space-y-3">
-                <label className="text-xs text-gray-500 font-mono uppercase tracking-wider flex items-center gap-2">
-                  <Settings size={14} />
-                  Logo Settings
-                </label>
-
-                <div>
-                  <p className="text-xs text-gray-600 mb-2">Position</p>
-                  <select
-                    value={logoPosition}
-                    onChange={(e) => handlePositionChange(e.target.value)}
-                    className="w-full bg-black border border-gray-800 px-3 py-2 text-sm text-gray-300 focus:border-gray-700 focus:outline-none"
-                  >
-                    <option value="top-left">Top Left</option>
-                    <option value="top-right">Top Right</option>
-                    <option value="bottom-left">Bottom Left</option>
-                    <option value="bottom-right">Bottom Right</option>
-                    <option value="center">Center</option>
-                  </select>
-                </div>
-
-                <div>
-                  <p className="text-xs text-gray-600 mb-2">Size: {logoSize}px</p>
-                  <input
-                    type="range"
-                    min="50"
-                    max="300"
-                    value={logoSize}
-                    onChange={(e) => handleSizeChange(Number(e.target.value))}
-                    className="w-full"
-                  />
-                </div>
-              </div>
-            )}
-
-            {audioFile && (
-              <div className="border border-gray-800 p-4">
-                <p className="text-xs text-gray-600 mb-2">Volume: {Math.round(audioVolume * 100)}%</p>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.1"
-                  value={audioVolume}
-                  onChange={(e) => handleVolumeChange(Number(e.target.value))}
-                  className="w-full"
-                />
-              </div>
-            )}
-
-            <button
-              onClick={handleStartRecording}
-              disabled={!pitchScript}
-              className="w-full bg-accent-yellow text-black font-bold py-3 text-sm tracking-wide hover:bg-accent-green transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              <Video size={16} />
-              START RECORDING (3 MIN)
-            </button>
-
-            <div className="bg-black/50 border border-gray-800 p-3">
-              <p className="text-xs text-gray-600 leading-relaxed">
-                <strong className="text-gray-500">Instructions:</strong> Click Start Recording to begin.
-                Your camera will activate and a teleprompter will show your script sections with timing.
-                {outputFormat === 'mp4' && ' Note: MP4 conversion downloads 30MB+ converter files first.'}
-                {outputFormat === 'webm' && ' Video downloads instantly (plays in Chrome, Firefox, Edge).'}
-              </p>
-            </div>
-          </>
-        )}
-
-        {isConverting && (
-          <div className="border border-accent-yellow bg-black/90 p-6 text-center space-y-4">
-            <div className="flex items-center justify-center gap-3">
-              <Download size={24} className="text-accent-yellow animate-pulse" />
-              <h3 className="text-lg font-bold text-white">Converting to MP4...</h3>
-            </div>
-            <div className="w-full bg-gray-800 h-3 rounded-full overflow-hidden">
-              <div
-                className="bg-accent-yellow h-full transition-all duration-300"
-                style={{ width: `${conversionProgress}%` }}
-              />
-            </div>
-            <p className="text-sm text-gray-500 font-mono">{conversionProgress}% complete</p>
-            <p className="text-xs text-gray-600">
-              Please wait while we convert your video. This may take a minute.
-            </p>
-          </div>
-        )}
-
-        {showTeleprompter && (
           <div className="space-y-4">
-            <div className="bg-accent-yellow text-black p-4 text-center">
-              <div className="flex items-center justify-between mb-2">
-                <span className="font-mono text-sm font-bold">
-                  TIME REMAINING: {Math.floor(timeRemaining / 60)}:{(timeRemaining % 60).toString().padStart(2, '0')}
-                </span>
-                <span className="font-mono text-sm font-bold">
-                  {Math.round(recordingProgress)}%
-                </span>
-              </div>
-              <div className="w-full bg-black h-2">
-                <div
-                  className="bg-accent-green h-full transition-all duration-300"
-                  style={{ width: `${recordingProgress}%` }}
-                />
-              </div>
-            </div>
+            <div className="border border-gray-800 p-4 rounded bg-black/40">
+              <label className="text-xs font-mono text-accent-yellow flex items-center gap-2 mb-3">
+                <Sparkles size={14}/> LOGO GENERATION
+              </label>
 
-            <div className="bg-black border-2 border-accent-yellow p-6 space-y-6">
-              {sections.map((section, index) => (
-                <div
-                  key={index}
-                  className={`transition-all ${
-                    currentSection === index
-                      ? 'opacity-100 scale-100'
-                      : 'opacity-40 scale-95'
-                  }`}
+              <div className="flex gap-2 mb-3">
+                <button
+                  onClick={handleGenerateLogo}
+                  disabled={isGeneratingLogo || !pitchScript}
+                  className="flex-1 bg-gradient-to-r from-purple-900 to-blue-900 border border-blue-700 text-white text-xs font-bold py-2 px-3 rounded hover:brightness-110 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                 >
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className={`text-2xl font-bold ${
-                      currentSection === index ? 'text-accent-yellow' : 'text-gray-600'
-                    }`}>
-                      {section.title}
-                    </h3>
-                    <span className={`text-sm font-mono ${
-                      currentSection === index ? 'text-accent-yellow' : 'text-gray-600'
-                    }`}>
-                      {section.duration}s
-                    </span>
-                  </div>
-                  <p className={`text-lg leading-relaxed ${
-                    currentSection === index ? 'text-white' : 'text-gray-700'
-                  }`}>
-                    {section.text}
-                  </p>
-                </div>
-              ))}
+                  {isGeneratingLogo ? <Sparkles className="animate-spin" size={14}/> : <Wand2 size={14}/>}
+                  {isGeneratingLogo ? "GENERATING..." : "GENERATE WITH AI"}
+                </button>
+                <label className="cursor-pointer bg-gray-800 text-gray-300 text-xs py-2 px-4 rounded hover:bg-gray-700 flex items-center gap-2">
+                  <ImageIcon size={14}/> UPLOAD
+                  <input type="file" accept="image/*" className="hidden" onChange={e => {
+                    const r = new FileReader();
+                    r.onload = ev => {
+                      const src = ev.target?.result as string;
+                      setLogoFile(src);
+                      const img = new Image();
+                      img.src = src;
+                      img.crossOrigin = "anonymous";
+                      img.onload = () => { logoImageRef.current = img; };
+                    };
+                    if(e.target.files?.[0]) r.readAsDataURL(e.target.files[0]);
+                  }}/>
+                </label>
+              </div>
             </div>
 
-            <button
-              onClick={handleStopRecording}
-              className="w-full bg-red-600 text-white font-bold py-3 text-sm tracking-wide hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
-            >
-              <Download size={16} />
-              STOP & SAVE VIDEO
-            </button>
+            <div className="border border-gray-800 p-4 rounded bg-black/40">
+              <label className="text-xs font-mono text-accent-yellow flex items-center gap-2 mb-3">
+                 <Music size={14} /> BACKING TRACK
+              </label>
+              <input type="file" accept="audio/*" onChange={e => {
+                 const r = new FileReader();
+                 r.onload = ev => setAudioFile(ev.target?.result as string);
+                 if(e.target.files?.[0]) r.readAsDataURL(e.target.files[0]);
+              }} className="text-xs text-gray-400 w-full file:bg-gray-800 file:border-0 file:text-white file:text-xs file:px-2 file:py-1 file:rounded file:mr-2 cursor-pointer"/>
+            </div>
           </div>
-        )}
 
-          <canvas ref={canvasRef} className="hidden" />
-          <video ref={videoRef} className="hidden" autoPlay muted playsInline />
-          {audioFile && (
-            <audio ref={audioRef} src={audioFile} className="hidden" loop />
-          )}
+          <div className="space-y-4">
+             <div className={`border p-4 rounded transition-colors ${enableAI ? 'border-accent-yellow bg-accent-yellow/5' : 'border-gray-800 bg-black/40'}`}>
+                <div className="flex justify-between items-center mb-3">
+                   <div className="flex items-center gap-2">
+                      <Cpu size={14} className={enableAI ? "text-accent-yellow" : "text-gray-500"}/>
+                      <span className="text-xs font-mono font-bold text-gray-300">AI GREEN SCREEN</span>
+                   </div>
+                   <button onClick={() => setEnableAI(!enableAI)} className={`relative w-8 h-4 rounded-full transition-colors ${enableAI ? 'bg-accent-yellow' : 'bg-gray-700'}`}>
+                      <div className={`absolute top-0.5 left-0.5 bg-black w-3 h-3 rounded-full transition-transform ${enableAI ? 'translate-x-4' : ''}`}/>
+                   </button>
+                </div>
+                {enableAI && (
+                  <div className="grid grid-cols-2 gap-2">
+                     <button onClick={()=>setBgMode('blur')} className={`p-2 text-xs border rounded ${bgMode==='blur'?'border-accent-yellow text-accent-yellow':'border-gray-700 text-gray-400'}`}>Blur</button>
+                     <label className={`p-2 text-xs border rounded text-center cursor-pointer ${bgMode==='image'?'border-accent-yellow text-accent-yellow':'border-gray-700 text-gray-400'}`}>
+                       Image <input type="file" accept="image/*" className="hidden" onChange={e => {
+                         const f = e.target.files?.[0];
+                         if(f) {
+                           const i = new Image();
+                           i.src=URL.createObjectURL(f);
+                           i.onload=()=>setVirtualBgImage(i);
+                           setBgMode('image');
+                         }
+                       }}/>
+                     </label>
+                  </div>
+                )}
+             </div>
+
+             <div className="border border-gray-800 p-4 rounded bg-black/40">
+                <label className="text-xs font-mono text-accent-yellow flex items-center gap-2 mb-3">
+                   <Palette size={14} /> CINEMATIC FILTERS
+                </label>
+                <div className="grid grid-cols-4 gap-2">
+                   {['none', 'cinematic', 'noir', 'warm'].map((f) => (
+                      <button key={f} onClick={() => setVideoFilter(f as any)} className={`text-[10px] uppercase py-2 border rounded ${videoFilter === f ? 'border-accent-yellow text-white bg-accent-yellow/20' : 'border-gray-700 text-gray-400'}`}>
+                        {f}
+                      </button>
+                   ))}
+                </div>
+             </div>
+          </div>
         </div>
+      )}
+
+      <div
+        className="relative bg-black border border-gray-800 aspect-video rounded-xl overflow-hidden group shadow-2xl"
+        onMouseEnter={() => setShowPrompterControls(true)}
+        onMouseLeave={() => setShowPrompterControls(false)}
+      >
+
+         <canvas ref={canvasRef} className="w-full h-full object-cover absolute inset-0"/>
+         <video ref={previewVideoRef} className={`w-full h-full object-cover transform -scale-x-100 ${isRecording ? 'hidden' : 'block'}`} playsInline muted autoPlay />
+         <video ref={videoRef} className="hidden" playsInline muted autoPlay />
+
+         {showPreview && (
+           <div className="absolute bottom-4 left-4 z-30 bg-black/60 p-2 rounded backdrop-blur-md border border-white/10">
+             <div className="flex items-center gap-2 mb-1">
+               <Mic size={10} className={isRecording ? "text-red-500 animate-pulse" : "text-gray-400"} />
+               <span className="text-[9px] font-mono text-gray-300">MIC INPUT</span>
+             </div>
+             <canvas ref={audioVisualizerCanvasRef} width={80} height={24} className="rounded opacity-80" />
+           </div>
+         )}
+
+         {showPreview && (
+           <div className="absolute top-[30%] left-0 w-full z-20 pointer-events-none opacity-50 flex items-center group-hover:opacity-100 transition-opacity">
+              <div className="w-full border-t border-dashed border-red-500/50"></div>
+              <div className="absolute right-2 text-[10px] text-red-500 bg-black/50 px-1 rounded font-mono">EYE LEVEL</div>
+           </div>
+         )}
+
+         {countdown !== null && (
+           <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+             <div className="text-9xl font-black text-accent-yellow animate-bounce">
+               {countdown}
+             </div>
+           </div>
+         )}
+
+         {showPreview && (
+           <div className="absolute inset-0 z-10 flex flex-col pointer-events-none">
+             <div className="h-32 bg-gradient-to-b from-black via-black/80 to-transparent z-20 pointer-events-none" />
+
+             <div
+                ref={teleprompterRef}
+                className="flex-1 overflow-y-hidden text-center px-12 no-scrollbar"
+                style={{
+                  transform: isMirrored ? 'scaleX(-1)' : 'none',
+                  scrollBehavior: 'auto'
+                }}
+             >
+                <div style={{ paddingTop: '30vh', paddingBottom: '50vh' }}>
+                   {sections.map((section, idx) => (
+                      <div key={idx} className="mb-24">
+                         <h3 className="text-accent-yellow font-mono text-sm mb-4 tracking-widest uppercase opacity-70 border-b border-accent-yellow/20 inline-block pb-1">
+                           {section.title}
+                         </h3>
+                         <div
+                           className="font-bold text-white drop-shadow-lg leading-relaxed"
+                           style={{ fontSize: `${fontSize}px` }}
+                         >
+                            {section.text}
+                         </div>
+                      </div>
+                   ))}
+                </div>
+             </div>
+
+             <div className="h-32 bg-gradient-to-t from-black via-black/80 to-transparent z-20 pointer-events-none" />
+           </div>
+         )}
+
+         {showPreview && (
+           <div className={`absolute top-4 left-1/2 transform -translate-x-1/2 z-40 transition-all duration-300 ${showPrompterControls || isPaused ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}`}>
+              <div className="bg-gray-900/90 backdrop-blur-md border border-gray-700 rounded-full p-2 px-6 flex items-center gap-6 shadow-xl">
+
+                 {isRecording && (
+                   <button
+                    onClick={() => setIsPaused(!isPaused)}
+                    className="hover:text-accent-yellow text-white transition-colors"
+                    title={isPaused ? "Resume Scroll" : "Pause Scroll"}
+                   >
+                     {isPaused ? <Play size={20} fill="currentColor"/> : <Pause size={20} fill="currentColor"/>}
+                   </button>
+                 )}
+
+                 <div className="flex items-center gap-2">
+                    <MoveVertical size={16} className="text-gray-400"/>
+                    <div className="flex flex-col">
+                       <span className="text-[9px] text-gray-500 font-mono uppercase">Speed</span>
+                       <input
+                        type="range" min="1" max="8" step="0.5"
+                        value={scrollSpeed}
+                        onChange={e => setScrollSpeed(Number(e.target.value))}
+                        className="w-20 h-1 accent-accent-yellow bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                       />
+                    </div>
+                 </div>
+
+                 <div className="flex items-center gap-2">
+                    <Type size={16} className="text-gray-400"/>
+                    <div className="flex flex-col">
+                       <span className="text-[9px] text-gray-500 font-mono uppercase">Size</span>
+                       <input
+                        type="range" min="18" max="64"
+                        value={fontSize}
+                        onChange={e => setFontSize(Number(e.target.value))}
+                        className="w-20 h-1 accent-accent-yellow bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                       />
+                    </div>
+                 </div>
+
+                 <button
+                   onClick={() => setIsMirrored(!isMirrored)}
+                   className={`p-2 rounded-full transition-colors ${isMirrored ? 'bg-accent-yellow text-black' : 'text-gray-400 hover:text-white'}`}
+                   title="Mirror Text (for Teleprompter Glass)"
+                 >
+                    <FlipHorizontal size={18}/>
+                 </button>
+              </div>
+           </div>
+         )}
+
+         {!isRecording && !showPreview && (
+           <div className="absolute inset-0 z-40 bg-gray-900/90 flex flex-col items-center justify-center gap-4">
+              <div className="p-4 bg-gray-800 rounded-full"><Video size={32} className="text-accent-yellow"/></div>
+              <button onClick={startPreview} className="bg-accent-yellow text-black px-8 py-3 rounded font-bold hover:bg-white transition-colors">
+                 ACTIVATE STUDIO
+              </button>
+              <p className="text-gray-500 text-xs max-w-xs text-center">We recommend Chrome/Edge for best performance.</p>
+           </div>
+         )}
+      </div>
+
+      {!isRecording && showPreview && !isConverting && (
+        <div className="mt-4 flex gap-4">
+           <button onClick={initiateRecordingSequence} className="flex-1 bg-accent-yellow hover:bg-white text-black text-lg font-bold py-4 rounded tracking-wide transition-all shadow-lg flex items-center justify-center gap-3">
+              <div className="w-4 h-4 bg-red-600 rounded-full animate-pulse"/> START RECORDING (AUTO-SCROLL)
+           </button>
+
+           <div className="flex items-center gap-2 bg-black border border-gray-800 px-4 rounded">
+              <span className="text-xs text-gray-500">FORMAT:</span>
+              <button onClick={()=>setOutputFormat('webm')} className={`text-xs font-bold px-2 py-1 rounded ${outputFormat==='webm'?'bg-gray-700 text-white':'text-gray-500'}`}>WEBM</button>
+              <button onClick={()=>setOutputFormat('mp4')} className={`text-xs font-bold px-2 py-1 rounded ${outputFormat==='mp4'?'bg-gray-700 text-white':'text-gray-500'}`}>MP4</button>
+           </div>
+        </div>
+      )}
+
+      {isRecording && (
+        <div className="mt-4 flex justify-between items-center bg-gray-900 p-4 rounded border border-red-900/50">
+           <div className="flex items-center gap-4">
+              <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"/>
+              <span className="text-red-500 font-mono font-bold">RECORDING IN PROGRESS</span>
+              <span className="text-white font-mono">{Math.floor(timeLeftDisplay / 60)}:{(timeLeftDisplay % 60).toString().padStart(2, '0')}</span>
+           </div>
+           <button onClick={handleStopRecording} className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded font-bold text-sm">
+             STOP & SAVE
+           </button>
+        </div>
+      )}
+
+      {isConverting && (
+         <div className="mt-4 bg-gray-900 border border-accent-yellow p-4 rounded flex items-center gap-4 animate-pulse">
+            <Download className="text-accent-yellow"/>
+            <div className="flex-1">
+               <div className="text-white font-bold text-sm mb-1">Converting to MP4...</div>
+               <div className="h-1 bg-gray-700 rounded overflow-hidden"><div className="h-full bg-accent-yellow transition-all duration-300" style={{width: `${conversionProgress}%`}}/></div>
+            </div>
+            <span className="text-accent-yellow font-mono text-sm">{conversionProgress}%</span>
+         </div>
+      )}
+      </>
       )}
     </CyberCard>
   );
