@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   Film, Music, Video, Sparkles, Cpu, Image as ImageIcon,
   Mic, Palette, Wand2, Download,
-  Play, Pause, Type, MoveVertical, FlipHorizontal
+  Play, Pause, Type, MoveVertical, FlipHorizontal, AlertCircle
 } from 'lucide-react';
 import { CyberCard } from './CyberCard';
 import { databaseService } from '../services/database';
@@ -77,7 +77,7 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
   useEffect(() => {
     const scrollLoop = () => {
       if (isRecording && !isPaused && teleprompterRef.current) {
-        const pixelsPerFrame = scrollSpeed * 0.3;
+        const pixelsPerFrame = scrollSpeed * 0.4;
         teleprompterRef.current.scrollTop += pixelsPerFrame;
       }
       scrollFrameRef.current = requestAnimationFrame(scrollLoop);
@@ -135,9 +135,15 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
     setIsGeneratingLogo(true);
     try {
       const contextPrompt = `A startup solving: "${pitchScript.problem.substring(0, 100)}..." using: "${pitchScript.solution.substring(0, 50)}..."`;
-      const response = await fetch('/api/generate-logo', {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+      const response = await fetch(`${supabaseUrl}/functions/v1/generate-logo`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseKey}`
+        },
         body: JSON.stringify({ prompt: contextPrompt })
       });
       const data = await response.json();
@@ -149,7 +155,7 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
       img.onload = () => { logoImageRef.current = img; };
     } catch (error) {
       console.error("Logo Gen Error:", error);
-      alert("Failed to generate logo. This feature requires additional API configuration.");
+      alert("Failed to generate logo. Ensure your API Key is valid and supports image generation.");
     } finally {
       setIsGeneratingLogo(false);
     }
@@ -223,7 +229,7 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
       startRenderingLoop();
     } catch (e) {
       console.error(e);
-      alert("Camera access denied.");
+      alert("Camera access denied. Please allow permissions.");
     }
   };
 
@@ -365,7 +371,7 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
     try {
         if (!ffmpegRef.current) {
             const ffmpeg = new FFmpeg();
-            const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
+            const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm';
             await ffmpeg.load({
                 coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
                 wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
@@ -381,8 +387,8 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
         await ffmpeg.deleteFile('input.webm');
         await ffmpeg.deleteFile('output.mp4');
     } catch (e) {
-        console.error(e);
-        alert("Conversion failed. Downloading WebM.");
+        console.error("FFmpeg Error:", e);
+        alert("MP4 conversion is not supported on this device/browser security setting. Downloading WebM instead (it works everywhere!).");
         downloadVideo(webmBlob, 'webm');
     } finally {
         setIsConverting(false);
@@ -397,7 +403,7 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
     a.click();
   };
 
-  const sections = pitchScript ? (
+  const sections = (pitchScript && pitchScript.problem) ? (
     pitchScript.script_type === 'demo' ? [
       { title: 'PROBLEM', text: pitchScript.problem },
       { title: 'REQUIREMENTS', text: pitchScript.requirements || '' },
@@ -411,8 +417,8 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
       { title: 'TRACTION', text: pitchScript.traction },
     ]
   ) : [
-    { title: 'READY TO RECORD', text: 'Your pitch script will appear here once generated. For now, this is a placeholder to test your teleprompter settings.' },
-    { title: 'SAMPLE SECTION', text: 'The text scrolls automatically when you hit record. Look at the camera lens, not the text.' }
+    { title: 'SETUP', text: 'Generate a script to see it here.' },
+    { title: 'INSTRUCTIONS', text: 'Look at the camera lens, not the screen. Speak naturally. This text will scroll automatically when you start.' }
   ];
 
   return (
@@ -530,10 +536,10 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
         onMouseLeave={() => setShowPrompterControls(false)}
       >
 
-         <canvas ref={canvasRef} className="w-full h-full object-cover absolute inset-0"/>
+         <canvas ref={canvasRef} className="w-full h-full object-cover absolute inset-0 z-0"/>
          <video
             ref={previewVideoRef}
-            className={`w-full h-full object-cover absolute inset-0 transform -scale-x-100 ${enableAI || isRecording ? 'hidden' : 'block'}`}
+            className={`w-full h-full object-cover absolute inset-0 transform -scale-x-100 z-0 ${enableAI || isRecording ? 'hidden' : 'block'}`}
             playsInline muted autoPlay
          />
          <video ref={videoRef} className="hidden" playsInline muted autoPlay />
@@ -556,7 +562,7 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
          )}
 
          {countdown !== null && (
-           <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+           <div className="absolute inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm">
              <div className="text-9xl font-black text-accent-yellow animate-bounce">
                {countdown}
              </div>
@@ -564,8 +570,8 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
          )}
 
          {showPreview && (
-           <div className="absolute inset-0 z-20 flex flex-col pointer-events-none">
-             <div className="h-32 bg-gradient-to-b from-black via-black/80 to-transparent z-20 pointer-events-none" />
+           <div className="absolute inset-0 z-30 flex flex-col pointer-events-none">
+             <div className="h-32 bg-gradient-to-b from-black via-black/80 to-transparent z-40" />
 
              <div
                 ref={teleprompterRef}
@@ -582,7 +588,7 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
                            {section.title}
                          </h3>
                          <div
-                           className="font-bold text-white drop-shadow-lg leading-relaxed"
+                           className="font-bold text-white drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] leading-relaxed"
                            style={{ fontSize: `${fontSize}px` }}
                          >
                             {section.text}
@@ -592,13 +598,13 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
                 </div>
              </div>
 
-             <div className="h-32 bg-gradient-to-t from-black via-black/80 to-transparent z-20 pointer-events-none" />
+             <div className="h-32 bg-gradient-to-t from-black via-black/80 to-transparent z-40" />
            </div>
          )}
 
          {showPreview && (
-           <div className={`absolute top-4 left-1/2 transform -translate-x-1/2 z-40 transition-all duration-300 ${showPrompterControls || isPaused ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}`}>
-              <div className="bg-gray-900/90 backdrop-blur-md border border-gray-700 rounded-full p-2 px-6 flex items-center gap-6 shadow-xl">
+           <div className={`absolute top-4 left-1/2 transform -translate-x-1/2 z-50 transition-all duration-300 ${showPrompterControls || isPaused ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}`}>
+              <div className="bg-gray-900/90 backdrop-blur-md border border-gray-700 rounded-full p-2 px-6 flex items-center gap-6 shadow-xl pointer-events-auto">
 
                  {isRecording && (
                    <button
@@ -648,7 +654,7 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
          )}
 
          {!isRecording && !showPreview && (
-           <div className="absolute inset-0 z-40 bg-gray-900/90 flex flex-col items-center justify-center gap-4">
+           <div className="absolute inset-0 z-50 bg-gray-900/90 flex flex-col items-center justify-center gap-4">
               <div className="p-4 bg-gray-800 rounded-full"><Video size={32} className="text-accent-yellow"/></div>
               <button onClick={startPreview} className="bg-accent-yellow text-black px-8 py-3 rounded font-bold hover:bg-white transition-colors">
                  ACTIVATE STUDIO
