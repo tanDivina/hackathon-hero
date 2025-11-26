@@ -102,19 +102,32 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
   useEffect(() => {
     if (enableAI && !selfieSegmentationRef.current) {
       setModelLoading(true);
+
       const selfieSegmentation = new SelfieSegmentation({
-        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/${file}`,
+        locateFile: (file) => {
+          return `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/${file}`;
+        },
       });
-      selfieSegmentation.setOptions({ modelSelection: 1, selfieMode: false });
+
+      selfieSegmentation.setOptions({
+        modelSelection: 1,
+        selfieMode: false,
+      });
+
       selfieSegmentation.onResults(onAIResults);
-      selfieSegmentation.initialize().then(() => {
-        setModelLoading(false);
-      }).catch(err => {
-        console.error('Failed to load AI model:', err);
-        setModelLoading(false);
-        setEnableAI(false);
-        alert('Failed to load AI model. Using standard mode.');
-      });
+
+      selfieSegmentation.initialize()
+        .then(() => {
+          console.log("AI Model Loaded Successfully");
+          setModelLoading(false);
+        })
+        .catch((err) => {
+          console.error("AI Model Load Failed:", err);
+          alert("Failed to load background AI. Check internet connection.");
+          setEnableAI(false);
+          setModelLoading(false);
+        });
+
       selfieSegmentationRef.current = selfieSegmentation;
     }
   }, [enableAI]);
@@ -128,6 +141,13 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
       cleanupResources();
     }
   }, [isExpanded]);
+
+  // Force redraw when sliders change (for instant feedback when paused)
+  useEffect(() => {
+    if (isExpanded && !isRecording && !enableAI && canvasRef.current) {
+       drawStandardFrame();
+    }
+  }, [logoSize, logoPosition, videoFilter]);
 
   // Scroll Loop
   useEffect(() => {
@@ -154,7 +174,10 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
     if (scrollFrameRef.current) cancelAnimationFrame(scrollFrameRef.current);
     if (audioContextRef.current) audioContextRef.current.close();
     if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
-    if (selfieSegmentationRef.current) selfieSegmentationRef.current.close();
+    if (selfieSegmentationRef.current) {
+        selfieSegmentationRef.current.close();
+        selfieSegmentationRef.current = null;
+    }
   };
 
   const loadSavedAssets = async () => {
@@ -224,7 +247,7 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
          try {
            await selfieSegmentationRef.current.send({ image: videoRef.current });
          } catch (err) {
-           console.error('AI processing error:', err);
+           console.warn('AI processing skipped frame:', err);
            drawStandardFrame();
          }
       } else {
@@ -274,45 +297,38 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
     canvas.height = results.image.height;
 
     ctx.save();
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
     ctx.translate(canvas.width, 0);
     ctx.scale(-1, 1);
 
-    if (bgMode === 'blur') {
-      ctx.filter = 'blur(15px)';
-      ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
-      ctx.filter = 'none';
-    } else if (bgMode === 'image' && virtualBgImage) {
-      const scale = Math.max(canvas.width / virtualBgImage.width, canvas.height / virtualBgImage.height);
-      const x = (canvas.width / 2) - (virtualBgImage.width / 2) * scale;
-      const y = (canvas.height / 2) - (virtualBgImage.height / 2) * scale;
-      ctx.drawImage(virtualBgImage, x, y, virtualBgImage.width * scale, virtualBgImage.height * scale);
-    } else {
-      ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
-    }
-
-    ctx.globalCompositeOperation = 'destination-in';
-    ctx.filter = 'none';
-
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = canvas.width;
-    tempCanvas.height = canvas.height;
-    const tempCtx = tempCanvas.getContext('2d');
-    if (tempCtx) {
-      tempCtx.drawImage(results.segmentationMask, 0, 0);
-      tempCtx.globalCompositeOperation = 'source-out';
-      tempCtx.fillStyle = 'white';
-      tempCtx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(tempCanvas, 0, 0);
-    }
-
-    ctx.globalCompositeOperation = 'destination-over';
+    // 1. Draw User (Person)
     applyFilters(ctx);
     ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
 
-    ctx.globalCompositeOperation = 'source-over';
+    // 2. Apply Mask (Keep only the Person)
+    ctx.globalCompositeOperation = 'destination-in';
+    ctx.filter = 'none';
+    ctx.drawImage(results.segmentationMask, 0, 0, canvas.width, canvas.height);
+
+    // 3. Draw Background (Behind Person)
+    ctx.globalCompositeOperation = 'destination-over';
+
+    if (bgMode === 'blur') {
+        ctx.filter = 'blur(10px)';
+        ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+    } else if (bgMode === 'image' && virtualBgImage) {
+        ctx.filter = 'none';
+        const scale = Math.max(canvas.width / virtualBgImage.width, canvas.height / virtualBgImage.height);
+        const x = (canvas.width / 2) - (virtualBgImage.width / 2) * scale;
+        const y = (canvas.height / 2) - (virtualBgImage.height / 2) * scale;
+        ctx.drawImage(virtualBgImage, x, y, virtualBgImage.width * scale, virtualBgImage.height * scale);
+    } else {
+        ctx.filter = 'blur(20px) brightness(0.5)';
+        ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+    }
+
     ctx.restore();
+
+    // 4. Draw Logo (Always on top)
     drawLogo(ctx, canvas.width, canvas.height);
   };
 
@@ -327,6 +343,8 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
         else if (position === 'bottom-left') { x = 40; y = h - size - 40; }
         else if (position === 'center') { x = (w - size) / 2; y = (h - size) / 2; }
 
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.filter = 'none';
         ctx.drawImage(logoImageRef.current, x, y, size, size);
     }
   };
@@ -376,7 +394,10 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
   };
 
   const handleDownloadLogo = () => {
-    if (!logoFile) return;
+    if (!logoFile) {
+        alert("No logo to download!");
+        return;
+    }
     const a = document.createElement('a');
     a.href = logoFile;
     const filename = localProjectName ? localProjectName.replace(/[^a-z0-9]/gi, '_').toLowerCase() : 'project';
@@ -567,7 +588,7 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
 
                     <input
                       type="text"
-                      placeholder="Project Name (e.g. FounderFlow)"
+                      placeholder="Project Name"
                       value={localProjectName}
                       onChange={(e) => setLocalProjectName(e.target.value)}
                       className="w-full bg-gray-900 border border-gray-700 text-white text-xs p-2 rounded focus:border-accent-yellow focus:outline-none"
