@@ -30,7 +30,7 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
   const [logoFile, setLogoFile] = useState<string>('');
   const [audioFile, setAudioFile] = useState<string>('');
   const [logoPosition, setLogoPosition] = useState<string>('top-right');
-  const [logoSize, setLogoSize] = useState<number>(150);
+  const [logoSize, setLogoSize] = useState<number>(200);
   const [audioVolume, setAudioVolume] = useState<number>(0.3);
 
   const [isRecording, setIsRecording] = useState(false);
@@ -40,8 +40,8 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
   const [isConverting, setIsConverting] = useState(false);
   const [conversionProgress, setConversionProgress] = useState<number>(0);
 
-  const [scrollSpeed, setScrollSpeed] = useState<number>(2);
-  const [fontSize, setFontSize] = useState<number>(42);
+  const [scrollSpeed, setScrollSpeed] = useState<number>(1.5);
+  const [fontSize, setFontSize] = useState<number>(48);
   const [isMirrored, setIsMirrored] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
 
@@ -85,7 +85,7 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
   useEffect(() => {
     const scrollLoop = () => {
       if (isRecording && !isPaused && teleprompterRef.current) {
-        teleprompterRef.current.scrollTop += (scrollSpeed * 0.5);
+        teleprompterRef.current.scrollTop += (scrollSpeed * 0.15);
       }
       scrollFrameRef.current = requestAnimationFrame(scrollLoop);
     };
@@ -193,9 +193,9 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
     if (logoImageRef.current && logoImageRef.current.complete) {
         const size = logoSize;
         let x = 20, y = 20;
-        if (logoPosition.includes('right')) x = canvas.width - size - 40;
+        if (logoPosition.includes('right')) x = canvas.width - size - 50;
         if (logoPosition.includes('center')) x = (canvas.width - size) / 2;
-        if (logoPosition.includes('bottom')) y = canvas.height - size - 40;
+        if (logoPosition.includes('bottom')) y = canvas.height - size - 50;
         if (logoPosition === 'center') y = (canvas.height - size) / 2;
         ctx.drawImage(logoImageRef.current, x, y, size, size);
     }
@@ -392,12 +392,13 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
 
                   <div className="flex items-center gap-4">
                      <div className="flex items-center gap-2 bg-black px-3 py-1 rounded border border-gray-800">
-                        <span className="text-xs text-gray-500 font-mono">SCROLL</span>
-                        <input type="range" min="1" max="8" step="0.5" value={scrollSpeed} onChange={e=>setScrollSpeed(Number(e.target.value))} className="w-16 accent-accent-yellow h-1 bg-gray-700 rounded-lg appearance-none"/>
+                        <span className="text-xs text-gray-500 font-mono">SPEED</span>
+                        <input type="range" min="0.5" max="5" step="0.5" value={scrollSpeed} onChange={e=>setScrollSpeed(Number(e.target.value))} className="w-24 accent-accent-yellow h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer"/>
+                        <span className="text-xs text-white w-6 text-right">{scrollSpeed}x</span>
                      </div>
                      <div className="flex items-center gap-2 bg-black px-3 py-1 rounded border border-gray-800">
-                        <span className="text-xs text-gray-500 font-mono">SIZE</span>
-                        <input type="range" min="20" max="80" value={fontSize} onChange={e=>setFontSize(Number(e.target.value))} className="w-16 accent-accent-yellow h-1 bg-gray-700 rounded-lg appearance-none"/>
+                        <span className="text-xs text-gray-500 font-mono">TEXT</span>
+                        <input type="range" min="20" max="80" value={fontSize} onChange={e=>setFontSize(Number(e.target.value))} className="w-16 accent-accent-yellow h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer"/>
                      </div>
                      <button onClick={()=>setIsExpanded(false)} className="bg-gray-800 hover:bg-gray-700 text-white p-2 rounded-full transition-colors">
                         <X size={20}/>
@@ -407,30 +408,70 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
 
                <div className="flex-1 relative overflow-hidden flex">
 
-                  <div className="w-64 bg-black border-r border-gray-800 p-4 space-y-6 overflow-y-auto hidden md:block z-20">
-                     <div className="space-y-2">
-                        <label className="text-xs text-gray-500 font-mono flex items-center gap-2"><Sparkles size={12}/> BRANDING</label>
+                  <div className="w-72 bg-black border-r border-gray-800 p-4 space-y-6 overflow-y-auto hidden md:block z-20">
+                     <div className="space-y-3">
+                        <label className="text-xs text-accent-yellow font-mono font-bold flex items-center gap-2"><Sparkles size={12}/> BRANDING</label>
                         <button
                           onClick={handleGenerateLogo}
                           disabled={isGeneratingLogo}
-                          className="w-full bg-blue-900/30 border border-blue-900 text-blue-400 text-xs py-2 rounded hover:bg-blue-900/50 transition-colors flex items-center justify-center gap-2"
+                          className="w-full bg-gradient-to-r from-blue-900 to-purple-900 border border-blue-800 text-white text-xs py-3 rounded font-bold hover:brightness-110 transition-colors flex items-center justify-center gap-2"
                         >
-                           {isGeneratingLogo ? <Sparkles className="animate-spin" size={12}/> : <Wand2 size={12}/>} GENERATE LOGO
+                           {isGeneratingLogo ? <Sparkles className="animate-spin" size={14}/> : <Wand2 size={14}/>}
+                           {isGeneratingLogo ? "GENERATING..." : "GENERATE LOGO"}
                         </button>
+
+                        <div className="flex items-center gap-2">
+                             <div className="h-px bg-gray-800 flex-1"></div>
+                             <span className="text-[10px] text-gray-600">OR</span>
+                             <div className="h-px bg-gray-800 flex-1"></div>
+                        </div>
+
                         <input type="file" onChange={e=>{
                             const r = new FileReader(); r.onload=ev=>{
                                setLogoFile(ev.target?.result as string);
                                const i = new Image(); i.src = ev.target?.result as string; i.onload=()=>logoImageRef.current=i;
                             };
                             if(e.target.files?.[0]) r.readAsDataURL(e.target.files[0]);
-                        }} className="text-xs text-gray-500 w-full"/>
+                        }} className="text-xs text-gray-500 w-full file:bg-gray-800 file:text-white file:border-0 file:rounded file:px-2 file:text-xs"/>
+
+                        {logoFile && (
+                            <div className="bg-gray-900 p-3 rounded space-y-2">
+                                <div className="flex justify-between text-[10px] text-gray-400">
+                                    <span>SIZE</span>
+                                    <span>{logoSize}px</span>
+                                </div>
+                                <input
+                                    type="range"
+                                    min="50"
+                                    max="400"
+                                    value={logoSize}
+                                    onChange={(e) => setLogoSize(Number(e.target.value))}
+                                    className="w-full accent-accent-yellow h-1 bg-gray-700 rounded-lg appearance-none"
+                                />
+                                <div className="flex justify-between text-[10px] text-gray-400 mt-2">
+                                    <span>POSITION</span>
+                                </div>
+                                <select
+                                    value={logoPosition}
+                                    onChange={(e) => setLogoPosition(e.target.value)}
+                                    className="w-full bg-black text-xs text-white border border-gray-700 rounded p-1"
+                                >
+                                    <option value="top-right">Top Right</option>
+                                    <option value="top-left">Top Left</option>
+                                    <option value="bottom-right">Bottom Right</option>
+                                    <option value="bottom-left">Bottom Left</option>
+                                </select>
+                            </div>
+                        )}
                      </div>
+
+                     <div className="h-px bg-gray-800" />
 
                      <div className="space-y-2">
                         <label className="text-xs text-gray-500 font-mono flex items-center gap-2"><Palette size={12}/> FILTERS</label>
                         <div className="grid grid-cols-2 gap-2">
                            {['none','cinematic','noir','warm'].map(f=>(
-                              <button key={f} onClick={()=>setVideoFilter(f as any)} className={`text-[10px] uppercase p-1 border rounded ${videoFilter===f?'border-accent-yellow text-accent-yellow':'border-gray-800 text-gray-500'}`}>{f}</button>
+                              <button key={f} onClick={()=>setVideoFilter(f as any)} className={`text-[10px] uppercase p-2 border rounded ${videoFilter===f?'border-accent-yellow text-accent-yellow bg-accent-yellow/10':'border-gray-800 text-gray-500 hover:bg-gray-900'}`}>{f}</button>
                            ))}
                         </div>
                      </div>
@@ -466,7 +507,7 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
                                  <div key={idx} className="mb-32">
                                     <h3 className="text-accent-yellow text-sm font-mono mb-2 uppercase tracking-widest">{section.title}</h3>
                                     <p
-                                      className="font-bold text-white leading-relaxed drop-shadow-[0_4px_4px_rgba(0,0,0,1)] px-4 py-2 bg-black/40 rounded-xl backdrop-blur-[2px]"
+                                      className="font-bold text-white leading-relaxed drop-shadow-[0_4px_4px_rgba(0,0,0,1)] px-6 py-4 bg-black/40 rounded-xl backdrop-blur-[2px] inline-block"
                                       style={{ fontSize: `${fontSize}px` }}
                                     >
                                        {section.text}
@@ -476,8 +517,8 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
                            </div>
                         </div>
 
-                        <div className="absolute top-[35%] w-full border-t border-red-500/30 border-dashed flex justify-end">
-                           <span className="text-[10px] text-red-500 bg-black/50 px-1">EYE LEVEL</span>
+                        <div className="absolute top-[35%] w-full border-t border-red-500/50 border-dashed flex justify-end opacity-70">
+                           <span className="text-[10px] text-red-500 bg-black/80 px-1 rounded">EYE LEVEL</span>
                         </div>
                      </div>
 
@@ -497,21 +538,21 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
                   </div>
                </div>
 
-               <div className="h-20 bg-black border-t border-gray-800 flex items-center justify-center gap-4">
+               <div className="h-24 bg-black border-t border-gray-800 flex items-center justify-center gap-6">
                   {!isRecording ? (
                      <button
                        onClick={startRecording}
-                       className="bg-accent-yellow hover:bg-white text-black px-12 py-3 rounded-full font-bold text-lg shadow-[0_0_20px_rgba(250,204,21,0.3)] transition-all transform hover:scale-105 flex items-center gap-2"
+                       className="bg-accent-yellow hover:bg-white text-black px-16 py-4 rounded-full font-bold text-xl shadow-[0_0_20px_rgba(250,204,21,0.3)] transition-all transform hover:scale-105 flex items-center gap-3"
                      >
-                        <div className="w-4 h-4 bg-red-600 rounded-full" /> START RECORDING
+                        <div className="w-5 h-5 bg-red-600 rounded-full animate-pulse" /> START RECORDING
                      </button>
                   ) : (
                      <div className="flex items-center gap-4">
-                        <button onClick={()=>setIsPaused(!isPaused)} className="bg-gray-800 text-white p-4 rounded-full hover:bg-gray-700">
-                           {isPaused ? <Play size={24}/> : <Pause size={24}/>}
+                        <button onClick={()=>setIsPaused(!isPaused)} className="bg-gray-800 text-white w-14 h-14 rounded-full hover:bg-gray-700 flex items-center justify-center border border-gray-700">
+                           {isPaused ? <Play size={28} fill="white"/> : <Pause size={28} fill="white"/>}
                         </button>
-                        <button onClick={stopRecording} className="bg-red-600 text-white px-12 py-3 rounded-full font-bold text-lg hover:bg-red-700 shadow-lg">
-                           STOP & SAVE
+                        <button onClick={stopRecording} className="bg-red-600 text-white px-12 py-4 rounded-full font-bold text-lg hover:bg-red-700 shadow-lg flex items-center gap-2">
+                           <div className="w-4 h-4 bg-white rounded-sm" /> STOP & SAVE
                         </button>
                      </div>
                   )}
