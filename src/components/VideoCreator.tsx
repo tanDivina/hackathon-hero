@@ -497,8 +497,8 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
                      <div className="space-y-2">
                         <label className="text-xs text-gray-500 font-mono">EXPORT</label>
                         <div className="flex gap-2">
-                           <button onClick={()=>setOutputFormat('webm')} className={`flex-1 text-[10px] border rounded py-1 ${outputFormat==='webm'?'border-accent-yellow bg-accent-yellow/10':'border-gray-800'}`}>WEBM</button>
-                           <button onClick={()=>setOutputFormat('mp4')} className={`flex-1 text-[10px] border rounded py-1 ${outputFormat==='mp4'?'border-accent-yellow bg-accent-yellow/10':'border-gray-800'}`}>MP4</button>
+                           <button onClick={()=>setOutputFormat('webm')} className={`flex-1 text-[10px] font-bold border rounded py-2 ${outputFormat==='webm'?'border-accent-yellow text-accent-yellow bg-accent-yellow/10':'border-gray-800 text-gray-400 hover:bg-gray-900'}`}>WEBM</button>
+                           <button onClick={()=>setOutputFormat('mp4')} className={`flex-1 text-[10px] font-bold border rounded py-2 ${outputFormat==='mp4'?'border-accent-yellow text-accent-yellow bg-accent-yellow/10':'border-gray-800 text-gray-400 hover:bg-gray-900'}`}>MP4</button>
                         </div>
                      </div>
                   </div>
