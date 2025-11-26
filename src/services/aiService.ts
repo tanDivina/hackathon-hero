@@ -38,6 +38,16 @@ export interface GeneratedIdeaData {
   sponsorAlignment: string;
 }
 
+export interface CandidateIdeaData {
+  title: string;
+  hook: string;
+  idea: string;
+  category: string;
+  reasoning: string;
+  sponsorAlignment: string;
+  complexity: 'Low' | 'Medium' | 'High';
+}
+
 export interface IntroPitchData {
   who: string;
   what: string;
@@ -275,6 +285,126 @@ Return valid JSON only, no additional text.`;
         reasoning: 'Addresses time management and decision fatigue by providing intelligent recommendations based on personal patterns and constraints.',
         sponsorAlignment: 'Built with modern web technologies including React, TypeScript, and a backend database for storing user preferences and task history.',
       };
+    }
+  },
+
+  async generateCandidateIdeas(
+    rulesData: ParsedRulesData & { fullRulesText?: string; customInstructions?: string },
+    userDirection?: string
+  ): Promise<CandidateIdeaData[]> {
+    const hasRealSponsors = rulesData.sponsors.length > 0 &&
+                            !rulesData.sponsors.some(s => s.toLowerCase().includes('no sponsor') || s.toLowerCase().includes('not identified'));
+
+    const sponsorContext = hasRealSponsors ? `
+SPONSORS: ${rulesData.sponsors.join(', ')}
+
+SPONSOR INTEGRATION RULES:
+- INFRASTRUCTURE SPONSORS (Database, Hosting, Framework): Built on this platform
+- CREATIVE TOOL SPONSORS (Game Engines, Design Tools): Uses this tool for creation
+- API/FEATURE SPONSORS: Uses this API for specific features
+- Only include sponsors that have relevant developer tools`
+    : `SPONSORS: None identified`;
+
+    const userDirectionSection = userDirection?.trim() ? `
+🎯 USER DIRECTION (HIGHEST PRIORITY):
+The user has provided personal interests/direction to steer the ideas:
+"${userDirection}"
+
+CRITICAL: Generate all 3 candidates with this direction in mind. Consider:
+- Skills, hobbies, or interests mentioned
+- Rough ideas or themes the user wants to explore
+- How to incorporate these personal elements into hackathon-aligned projects
+` : '';
+
+    const insiderIntelSection = rulesData.customInstructions?.trim() ? `
+
+🔥 INSIDER INTEL (APPLY TO ALL CANDIDATES):
+${rulesData.customInstructions}
+
+CRITICAL: Apply these insights to ALL 3 candidate ideas.
+` : '';
+
+    let specificGoalInstruction = '';
+    if (rulesData.eventType === 'GAME_JAM') {
+      specificGoalInstruction = `Generate 3 GAME/INTERACTIVE EXPERIENCE candidates that embrace the "${rulesData.theme}" theme with engaging mechanics and memorable experiences.`;
+    } else if (rulesData.eventType === 'DATATHON') {
+      specificGoalInstruction = `Generate 3 DATA-DRIVEN PROJECT candidates that analyze datasets and extract insights for "${rulesData.theme}".`;
+    } else if (rulesData.eventType === 'DESIGN_CHALLENGE') {
+      specificGoalInstruction = `Generate 3 DESIGN-FOCUSED candidates with innovative UI/UX for "${rulesData.theme}".`;
+    } else {
+      specificGoalInstruction = `Generate 3 HACKATHON PROJECT candidates that solve real problems aligned with "${rulesData.theme}".`;
+    }
+
+    const prompt = `You are a Hackathon Strategy Coach. Generate 3 DISTINCT candidate project ideas.
+
+EVENT DETAILS:
+Type: ${rulesData.eventType}
+Theme: ${rulesData.theme}
+${sponsorContext}
+
+JUDGING CRITERIA:
+${rulesData.judgingCriteria.join('\n')}
+
+DEADLINE: ${rulesData.deadline}
+${userDirectionSection}${insiderIntelSection}
+
+TASK: ${specificGoalInstruction}
+
+Each candidate must be:
+1. DISTINCT from the others (different approaches/categories)
+2. Aligned with judging criteria
+3. Feasible within the deadline
+4. Unique and innovative
+
+Return ONLY a JSON array with 3 objects, each with this structure:
+[
+  {
+    "title": "Catchy 2-4 word name (e.g., 'SpookChat AI', 'CodeMentor Pro')",
+    "hook": "One compelling sentence description (12-15 words max)",
+    "idea": "Full project description (3-4 sentences explaining concept, features, value)",
+    "category": "Project category/genre",
+    "reasoning": "Why this fits judging criteria and theme (2-3 sentences)",
+    "sponsorAlignment": "Technical approach and sponsor integration (2-3 sentences)",
+    "complexity": "Low" | "Medium" | "High"
+  }
+]
+
+Make each candidate feel distinct. Return valid JSON array only.`;
+
+    try {
+      const result = await geminiService.parseJSON<CandidateIdeaData[]>(prompt);
+      return result.slice(0, 3);
+    } catch (error) {
+      console.error('Failed to generate candidate ideas:', error);
+      return [
+        {
+          title: 'TaskFlow AI',
+          hook: 'Smart task prioritization powered by AI to boost daily productivity.',
+          idea: 'A task management app that analyzes deadlines, importance, and energy levels to suggest optimal task order. Uses machine learning to learn from user patterns and improve recommendations over time.',
+          category: 'Productivity Tool',
+          reasoning: 'Addresses time management and decision fatigue by providing intelligent recommendations based on personal patterns.',
+          sponsorAlignment: 'Built with modern web technologies including React, TypeScript, and database for user preferences.',
+          complexity: 'Medium',
+        },
+        {
+          title: 'SkillSwap Hub',
+          hook: 'Connect with peers to exchange skills and knowledge through micro-sessions.',
+          idea: 'A platform for peer-to-peer skill sharing through short video sessions. Users offer skills they have and request skills they need, creating a barter economy of knowledge.',
+          category: 'Education Platform',
+          reasoning: 'Promotes community learning and addresses the accessibility gap in education through peer connections.',
+          sponsorAlignment: 'Utilizes video APIs for real-time sessions and database for skill matching algorithms.',
+          complexity: 'High',
+        },
+        {
+          title: 'EcoTracker',
+          hook: 'Gamify your carbon footprint reduction with daily challenges and rewards.',
+          idea: 'A mobile-first app that tracks daily activities and calculates carbon impact. Provides actionable challenges and visualizes progress with engaging charts and achievement badges.',
+          category: 'Sustainability App',
+          reasoning: 'Combines environmental awareness with behavioral psychology through gamification to drive real change.',
+          sponsorAlignment: 'Features interactive UI with data visualization libraries and cloud database for tracking.',
+          complexity: 'Low',
+        },
+      ];
     }
   },
 

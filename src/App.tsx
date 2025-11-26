@@ -289,6 +289,52 @@ function HackathonWizard() {
     return result;
   };
 
+  const handleGenerateCandidateIdeas = async (userDirection?: string) => {
+    if (!currentProject) throw new Error('No project selected');
+
+    const rulesData = await databaseService.getRulesData(currentProject.id);
+    if (!rulesData) throw new Error('No rules data found');
+
+    const project = await databaseService.getProject(currentProject.id);
+    const customInstructions = project?.custom_instructions || '';
+
+    const result = await aiService.generateCandidateIdeas({
+      deadline: rulesData.deadline,
+      sponsors: rulesData.sponsors,
+      judgingCriteria: rulesData.judging_criteria,
+      prizes: rulesData.prizes,
+      theme: rulesData.theme,
+      eventType: rulesData.event_type,
+      fullRulesText: rulesData.rules_text,
+      customInstructions,
+    }, userDirection);
+
+    return result;
+  };
+
+  const handleExpandCandidate = async (candidate: any) => {
+    if (!currentProject) throw new Error('No project selected');
+
+    const rulesData = await databaseService.getRulesData(currentProject.id);
+    if (!rulesData) throw new Error('No rules data found');
+
+    const project = await databaseService.getProject(currentProject.id);
+    const customInstructions = project?.custom_instructions || '';
+
+    const result = await aiService.generateIdea({
+      deadline: rulesData.deadline,
+      sponsors: rulesData.sponsors,
+      judgingCriteria: rulesData.judging_criteria,
+      prizes: rulesData.prizes,
+      theme: rulesData.theme,
+      eventType: rulesData.event_type,
+      fullRulesText: rulesData.rules_text,
+      customInstructions: `${customInstructions}\n\nEXPAND THIS CANDIDATE IDEA:\nTitle: ${candidate.title}\n${candidate.idea}\n\nProvide a more detailed version with enhanced features, technical details, and implementation strategy.`,
+    });
+
+    return result;
+  };
+
   const handleOptimizePrompt = async (idea: string) => {
     if (!currentProject) throw new Error('No project selected');
 
@@ -556,9 +602,11 @@ function HackathonWizard() {
             />
             <IdeaGenerator
               onGenerate={handleGenerateIdea}
+              onGenerateCandidates={handleGenerateCandidateIdeas}
+              onExpandCandidate={handleExpandCandidate}
               hasRules={hasRules}
               projectId={currentProject?.id}
-              onSendToOptimizer={(idea) => {
+              onSendToOptimizer={(idea, ideaName) => {
                 const optimizerElement = document.querySelector('[data-component="prompt-optimizer"]');
                 if (optimizerElement) {
                   optimizerElement.scrollIntoView({ behavior: 'smooth', block: 'center' });

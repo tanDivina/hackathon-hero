@@ -73,6 +73,13 @@ export interface IdeaData {
   reasoning: string;
   sponsor_alignment: string;
   created_at: string;
+  user_direction?: string;
+  is_candidate?: boolean;
+  candidate_title?: string;
+  candidate_hook?: string;
+  complexity?: string;
+  parent_candidate_id?: string;
+  idea_name?: string;
 }
 
 export interface Milestone {
@@ -534,10 +541,102 @@ export const databaseService = {
       .from('ideas')
       .select('*')
       .eq('project_id', projectId)
+      .eq('is_candidate', false)
       .maybeSingle();
 
     if (error) {
       console.error('Error fetching idea:', error);
+      return null;
+    }
+    return data;
+  },
+
+  async saveCandidateIdeas(projectId: string, candidates: Array<{
+    candidate_title: string;
+    candidate_hook: string;
+    idea_text: string;
+    category: string;
+    reasoning: string;
+    sponsor_alignment: string;
+    complexity: string;
+    user_direction?: string;
+  }>): Promise<IdeaData[]> {
+    await supabase
+      .from('ideas')
+      .delete()
+      .eq('project_id', projectId)
+      .eq('is_candidate', true);
+
+    const { data, error } = await supabase
+      .from('ideas')
+      .insert(
+        candidates.map(c => ({
+          project_id: projectId,
+          is_candidate: true,
+          candidate_title: c.candidate_title,
+          candidate_hook: c.candidate_hook,
+          idea_text: c.idea_text,
+          category: c.category,
+          reasoning: c.reasoning,
+          sponsor_alignment: c.sponsor_alignment,
+          complexity: c.complexity,
+          user_direction: c.user_direction || '',
+        }))
+      )
+      .select();
+
+    if (error) {
+      console.error('Error saving candidate ideas:', error);
+      return [];
+    }
+    return data || [];
+  },
+
+  async getCandidateIdeas(projectId: string): Promise<IdeaData[]> {
+    const { data, error } = await supabase
+      .from('ideas')
+      .select('*')
+      .eq('project_id', projectId)
+      .eq('is_candidate', true)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching candidate ideas:', error);
+      return [];
+    }
+    return data || [];
+  },
+
+  async expandCandidateIdea(projectId: string, candidateId: string, expandedIdea: {
+    idea_text: string;
+    category: string;
+    reasoning: string;
+    sponsor_alignment: string;
+    idea_name?: string;
+  }): Promise<IdeaData | null> {
+    await supabase
+      .from('ideas')
+      .delete()
+      .eq('project_id', projectId)
+      .eq('is_candidate', false);
+
+    const { data, error } = await supabase
+      .from('ideas')
+      .insert({
+        project_id: projectId,
+        is_candidate: false,
+        parent_candidate_id: candidateId,
+        idea_text: expandedIdea.idea_text,
+        category: expandedIdea.category,
+        reasoning: expandedIdea.reasoning,
+        sponsor_alignment: expandedIdea.sponsor_alignment,
+        idea_name: expandedIdea.idea_name || '',
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error expanding candidate idea:', error);
       return null;
     }
     return data;
