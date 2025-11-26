@@ -38,8 +38,10 @@ export const IdeaGenerator: React.FC<IdeaGeneratorProps> = ({
   const [expandedIdea, setExpandedIdea] = useState<GeneratedIdea | null>(null);
   const [expandedIdeaName, setExpandedIdeaName] = useState('');
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
+  const [isExpanding, setIsExpanding] = useState(false);
 
   const loadSavedData = async () => {
+    if (isExpanding) return;
     if (!projectId) {
       setViewMode('initial');
       setCandidates([]);
@@ -78,6 +80,10 @@ export const IdeaGenerator: React.FC<IdeaGeneratorProps> = ({
     if (!hasRules) return;
 
     setIsGenerating(true);
+    setExpandedIdea(null);
+    setExpandedIdeaName('');
+    setSelectedCandidateId(null);
+
     try {
       const direction = usePersonalDirection ? userDirection.trim() : undefined;
       const result = await onGenerateCandidates(direction);
@@ -111,6 +117,7 @@ export const IdeaGenerator: React.FC<IdeaGeneratorProps> = ({
     if (!projectId) return;
 
     setIsGenerating(true);
+    setIsExpanding(true);
     setSelectedCandidateId(candidate.id);
 
     try {
@@ -126,7 +133,7 @@ export const IdeaGenerator: React.FC<IdeaGeneratorProps> = ({
 
       const expanded = await onExpandCandidate(candidateData);
 
-      await databaseService.expandCandidateIdea(projectId, candidate.id, {
+      const savedIdea = await databaseService.expandCandidateIdea(projectId, candidate.id, {
         idea_text: expanded.idea,
         category: expanded.category,
         reasoning: expanded.reasoning,
@@ -134,13 +141,25 @@ export const IdeaGenerator: React.FC<IdeaGeneratorProps> = ({
         idea_name: candidate.candidate_title || '',
       });
 
-      setExpandedIdea(expanded);
-      setExpandedIdeaName(candidate.candidate_title || '');
+      if (savedIdea) {
+        setExpandedIdea({
+          idea: savedIdea.idea_text,
+          category: savedIdea.category,
+          reasoning: savedIdea.reasoning,
+          sponsorAlignment: savedIdea.sponsor_alignment,
+        });
+        setExpandedIdeaName(savedIdea.idea_name || '');
+      } else {
+        setExpandedIdea(expanded);
+        setExpandedIdeaName(candidate.candidate_title || '');
+      }
+
       setViewMode('expanded');
     } catch (error) {
       console.error('Expansion failed:', error);
     } finally {
       setIsGenerating(false);
+      setIsExpanding(false);
     }
   };
 

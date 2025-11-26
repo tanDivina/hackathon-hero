@@ -567,6 +567,12 @@ export const databaseService = {
       .eq('project_id', projectId)
       .eq('is_candidate', true);
 
+    await supabase
+      .from('ideas')
+      .delete()
+      .eq('project_id', projectId)
+      .eq('is_candidate', false);
+
     const { data, error } = await supabase
       .from('ideas')
       .insert(
