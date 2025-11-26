@@ -36,6 +36,7 @@ function HackathonWizard() {
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [currentPitchScript, setCurrentPitchScript] = useState<PitchScriptData | null>(null);
+  const [currentIdeaName, setCurrentIdeaName] = useState<string>('');
   const [hasRules, setHasRules] = useState(false);
   const [deadline, setDeadline] = useState<string>('');
   const [showInfoModal, setShowInfoModal] = useState(false);
@@ -98,6 +99,9 @@ function HackathonWizard() {
 
     const pitchScript = await databaseService.getPitchScript(currentProject.id);
     setCurrentPitchScript(pitchScript);
+
+    const idea = await databaseService.getIdea(currentProject.id);
+    setCurrentIdeaName(idea?.idea_name || '');
 
     const rulesData = await databaseService.getRulesData(currentProject.id);
     setHasRules(!!rulesData);
@@ -332,7 +336,7 @@ function HackathonWizard() {
       theme: rulesData.theme,
       eventType: rulesData.event_type,
       fullRulesText: rulesData.rules_text,
-      customInstructions: `${customInstructions}\n\nEXPAND THIS CANDIDATE IDEA:\nTitle: ${candidate.title}\n${candidate.idea}\n\nProvide a more detailed version with enhanced features, technical details, and implementation strategy.`,
+      customInstructions: `${customInstructions}\n\nEXPAND THIS CANDIDATE IDEA:\nTitle: ${candidate.title}\n${candidate.idea}\n\nProvide a more detailed version with enhanced features, technical details, and implementation strategy.\n\nCRITICAL: The project name is "${candidate.title}". DO NOT invent or use a different project name in the description. If you need to reference the project, use "${candidate.title}" exactly as provided.`,
     });
 
     return result;
@@ -670,7 +674,7 @@ function HackathonWizard() {
             <VideoCreator
               isPro={isPro}
               projectId={currentProject?.id}
-              projectName={currentProject?.name}
+              projectName={currentIdeaName || currentProject?.name}
               onUpgradeClick={() => setShowProModal(true)}
               pitchScript={currentPitchScript ? {
                 problem: currentPitchScript.problem,
