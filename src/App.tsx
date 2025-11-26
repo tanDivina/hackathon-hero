@@ -101,6 +101,8 @@ function HackathonWizard() {
     setCurrentPitchScript(pitchScript);
 
     const idea = await databaseService.getIdea(currentProject.id);
+    console.log('📝 Loaded idea:', idea);
+    console.log('📝 Idea name:', idea?.idea_name);
     setCurrentIdeaName(idea?.idea_name || '');
 
     const rulesData = await databaseService.getRulesData(currentProject.id);
@@ -674,7 +676,7 @@ function HackathonWizard() {
             <VideoCreator
               isPro={isPro}
               projectId={currentProject?.id}
-              projectName={currentIdeaName || currentProject?.name}
+              projectName={currentIdeaName || ''}
               onUpgradeClick={() => setShowProModal(true)}
               pitchScript={currentPitchScript ? {
                 problem: currentPitchScript.problem,

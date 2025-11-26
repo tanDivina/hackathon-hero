@@ -94,6 +94,7 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
 
   // Update local project name when prop changes
   useEffect(() => {
+    console.log('🎬 VideoCreator received projectName prop:', projectName);
     if (projectName) {
       setLocalProjectName(projectName);
     }

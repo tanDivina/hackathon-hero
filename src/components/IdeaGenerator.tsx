@@ -133,6 +133,7 @@ export const IdeaGenerator: React.FC<IdeaGeneratorProps> = ({
 
       const expanded = await onExpandCandidate(candidateData);
 
+      console.log('💡 Expanding candidate with title:', candidate.candidate_title);
       const savedIdea = await databaseService.expandCandidateIdea(projectId, candidate.id, {
         idea_text: expanded.idea,
         category: expanded.category,
@@ -140,6 +141,7 @@ export const IdeaGenerator: React.FC<IdeaGeneratorProps> = ({
         sponsor_alignment: expanded.sponsorAlignment,
         idea_name: candidate.candidate_title || '',
       });
+      console.log('💡 Saved idea with idea_name:', savedIdea?.idea_name);
 
       if (savedIdea) {
         setExpandedIdea({
