@@ -83,14 +83,29 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
   }, [isExpanded, videoFilter, enableAI, bgMode, logoPosition, logoSize]);
 
   useEffect(() => {
+    if (!isRecording) {
+      if (scrollFrameRef.current) {
+        cancelAnimationFrame(scrollFrameRef.current);
+        scrollFrameRef.current = null;
+      }
+      return;
+    }
+
     const scrollLoop = () => {
       if (isRecording && !isPaused && teleprompterRef.current) {
         teleprompterRef.current.scrollTop += (scrollSpeed * 0.15);
       }
       scrollFrameRef.current = requestAnimationFrame(scrollLoop);
     };
-    if (isRecording) scrollFrameRef.current = requestAnimationFrame(scrollLoop);
-    return () => { if (scrollFrameRef.current) cancelAnimationFrame(scrollFrameRef.current); };
+
+    scrollFrameRef.current = requestAnimationFrame(scrollLoop);
+
+    return () => {
+      if (scrollFrameRef.current) {
+        cancelAnimationFrame(scrollFrameRef.current);
+        scrollFrameRef.current = null;
+      }
+    };
   }, [isRecording, isPaused, scrollSpeed]);
 
   const cleanupResources = () => {
@@ -231,6 +246,9 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
   };
 
   const startRecording = () => {
+    if (teleprompterRef.current) {
+      teleprompterRef.current.scrollTop = 0;
+    }
     setCountdown(3);
     const interval = setInterval(() => {
         setCountdown(prev => {
