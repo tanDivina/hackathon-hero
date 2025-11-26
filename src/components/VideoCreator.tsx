@@ -93,9 +93,15 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
       });
       selfieSegmentation.setOptions({ modelSelection: 1, selfieMode: false });
       selfieSegmentation.onResults(onAIResults);
+      selfieSegmentation.initialize().then(() => {
+        setModelLoading(false);
+      }).catch(err => {
+        console.error('Failed to load AI model:', err);
+        setModelLoading(false);
+        setEnableAI(false);
+        alert('Failed to load AI model. Using standard mode.');
+      });
       selfieSegmentationRef.current = selfieSegmentation;
-      // Tiny delay to let it load
-      setTimeout(() => setModelLoading(false), 1000);
     }
   }, [enableAI]);
 
@@ -204,9 +210,13 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
       }
 
       // DECISION: AI Processing or Standard Draw?
-      if (enableAI && selfieSegmentationRef.current) {
-         await selfieSegmentationRef.current.send({ image: videoRef.current });
-         // onAIResults will be called by the library to draw the frame
+      if (enableAI && selfieSegmentationRef.current && !modelLoading) {
+         try {
+           await selfieSegmentationRef.current.send({ image: videoRef.current });
+         } catch (err) {
+           console.error('AI processing error:', err);
+           drawStandardFrame();
+         }
       } else {
          drawStandardFrame();
       }
@@ -249,7 +259,7 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
   const onAIResults = (results: any) => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
-    if (!canvas || !ctx) return;
+    if (!canvas || !ctx || !results.segmentationMask) return;
 
     canvas.width = results.image.width;
     canvas.height = results.image.height;
@@ -271,18 +281,31 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
       const y = (canvas.height / 2) - (virtualBgImage.height / 2) * scale;
       ctx.drawImage(virtualBgImage, x, y, virtualBgImage.width * scale, virtualBgImage.height * scale);
     } else {
-      ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height); // Fallback to original
+      ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
     }
 
-    // 2. Cut out Human
-    ctx.globalCompositeOperation = 'destination-out';
-    ctx.drawImage(results.segmentationMask, 0, 0, canvas.width, canvas.height);
+    // 2. Apply mask to cut out person
+    ctx.globalCompositeOperation = 'destination-in';
+    ctx.filter = 'none';
 
-    // 3. Draw Human Back On Top
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = canvas.width;
+    tempCanvas.height = canvas.height;
+    const tempCtx = tempCanvas.getContext('2d');
+    if (tempCtx) {
+      tempCtx.drawImage(results.segmentationMask, 0, 0);
+      tempCtx.globalCompositeOperation = 'source-out';
+      tempCtx.fillStyle = 'white';
+      tempCtx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(tempCanvas, 0, 0);
+    }
+
+    // 3. Draw person on top
     ctx.globalCompositeOperation = 'destination-over';
     applyFilters(ctx);
     ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
 
+    ctx.globalCompositeOperation = 'source-over';
     ctx.restore();
     drawLogo(ctx, canvas.width, canvas.height);
   };
@@ -596,6 +619,17 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
                        {['none','cinematic','noir','warm'].map(f=>(
                           <button key={f} onClick={()=>setVideoFilter(f as any)} className={`text-[10px] uppercase p-2 border rounded ${videoFilter===f?'border-accent-yellow text-accent-yellow bg-accent-yellow/10':'border-gray-800 text-gray-500 hover:bg-gray-900'}`}>{f}</button>
                        ))}
+                    </div>
+                 </div>
+
+                 <div className="h-px bg-gray-800" />
+
+                 {/* Export Format */}
+                 <div className="space-y-2">
+                    <label className="text-xs text-gray-500 font-mono">EXPORT</label>
+                    <div className="flex gap-2">
+                       <button onClick={()=>setOutputFormat('webm')} className={`flex-1 text-[10px] font-bold border rounded py-2 ${outputFormat==='webm'?'border-accent-yellow text-accent-yellow bg-accent-yellow/10':'border-gray-800 text-gray-400 hover:bg-gray-900'}`}>WEBM</button>
+                       <button onClick={()=>setOutputFormat('mp4')} className={`flex-1 text-[10px] font-bold border rounded py-2 ${outputFormat==='mp4'?'border-accent-yellow text-accent-yellow bg-accent-yellow/10':'border-gray-800 text-gray-400 hover:bg-gray-900'}`}>MP4</button>
                     </div>
                  </div>
               </div>
