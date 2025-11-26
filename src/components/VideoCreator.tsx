@@ -31,12 +31,15 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
   // --- STATE ---
   const [isExpanded, setIsExpanded] = useState(false);
 
+  // Assets
   const [logoFile, setLogoFile] = useState<string>('');
+  const [localProjectName, setLocalProjectName] = useState<string>(projectName || '');
   const [audioFile, setAudioFile] = useState<string>('');
   const [logoPosition, setLogoPosition] = useState<string>('top-right');
   const [logoSize, setLogoSize] = useState<number>(150);
   const [audioVolume, setAudioVolume] = useState<number>(0.3);
 
+  // Recording
   const [isRecording, setIsRecording] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [timeLeftDisplay, setTimeLeftDisplay] = useState<number>(180);
@@ -68,6 +71,10 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
   const audioContextRef = useRef<AudioContext | null>(null);
   const audioVisualizerCanvasRef = useRef<HTMLCanvasElement>(null);
 
+  // LIVE SETTINGS REFS (Critical for Canvas Loop)
+  const logoSettingsRef = useRef({ size: 150, position: 'top-right' });
+  const filterRef = useRef('none');
+
   // AI Refs
   const selfieSegmentationRef = useRef<SelfieSegmentation | null>(null);
 
@@ -78,6 +85,12 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
   const startTimeRef = useRef<number>(0);
   const bgAudioElementRef = useRef<HTMLAudioElement | null>(null);
   const scrollAccumulatorRef = useRef<number>(0);
+
+  // --- SYNCHRONIZATION EFFECT ---
+  useEffect(() => {
+    logoSettingsRef.current = { size: logoSize, position: logoPosition };
+    filterRef.current = videoFilter;
+  }, [logoSize, logoPosition, videoFilter]);
 
   // --- LIFECYCLE ---
   useEffect(() => {
@@ -115,8 +128,6 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
       cleanupResources();
     }
   }, [isExpanded]);
-
-  // Force redraw when logo size or position changes (removed - handled by render loop)
 
   // Scroll Loop
   useEffect(() => {
@@ -226,7 +237,8 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
   };
 
   const applyFilters = (ctx: CanvasRenderingContext2D) => {
-    switch (videoFilter) {
+    const currentFilter = filterRef.current;
+    switch (currentFilter) {
       case 'cinematic': ctx.filter = 'contrast(1.1) saturate(1.2) brightness(0.95)'; break;
       case 'noir': ctx.filter = 'grayscale(1) contrast(1.2) brightness(0.9)'; break;
       case 'warm': ctx.filter = 'sepia(0.2) contrast(1.05) saturate(1.1)'; break;
@@ -306,29 +318,37 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
 
   const drawLogo = (ctx: CanvasRenderingContext2D, w: number, h: number) => {
     if (logoImageRef.current && logoImageRef.current.complete) {
-        const size = logoSize;
+        const { size, position } = logoSettingsRef.current;
+
         let x = 20, y = 20;
-        if (logoPosition.includes('right')) x = w - size - 40;
-        if (logoPosition.includes('center')) x = (w - size) / 2;
-        if (logoPosition.includes('bottom')) y = h - size - 40;
-        if (logoPosition === 'center') y = (h - size) / 2;
+        if (position === 'top-right') { x = w - size - 40; y = 40; }
+        else if (position === 'top-left') { x = 40; y = 40; }
+        else if (position === 'bottom-right') { x = w - size - 40; y = h - size - 40; }
+        else if (position === 'bottom-left') { x = 40; y = h - size - 40; }
+        else if (position === 'center') { x = (w - size) / 2; y = (h - size) / 2; }
+
         ctx.drawImage(logoImageRef.current, x, y, size, size);
     }
   };
 
   // --- LOGO GEN ---
   const handleGenerateLogo = async () => {
-    if (!projectName && !pitchScript?.problem) return alert("Project name or script required!");
+    const nameToUse = localProjectName.trim();
+
+    if (!nameToUse && !pitchScript?.problem) return alert("Project name or script required!");
+
     setIsGeneratingLogo(true);
     try {
       let contextPrompt = '';
-      if (projectName) {
-        contextPrompt = `A modern, professional logo for "${projectName}"`;
-        if (pitchScript?.problem) {
-          contextPrompt += `, a startup solving: "${pitchScript.problem.substring(0, 40)}..."`;
-        }
-      } else if (pitchScript?.problem) {
-        contextPrompt = `A startup solving: "${pitchScript.problem.substring(0, 50)}..."`;
+
+      if (nameToUse) {
+        contextPrompt = `A professional logo for a project named "${nameToUse}".`;
+      } else {
+        contextPrompt = "A modern startup logo.";
+      }
+
+      if (pitchScript?.problem) {
+        contextPrompt += ` Context: The project solves this problem: "${pitchScript.problem.substring(0, 80)}..."`;
       }
 
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -359,7 +379,8 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
     if (!logoFile) return;
     const a = document.createElement('a');
     a.href = logoFile;
-    a.download = `logo-${projectName || 'project'}.png`;
+    const filename = localProjectName ? localProjectName.replace(/[^a-z0-9]/gi, '_').toLowerCase() : 'project';
+    a.download = `logo-${filename}.png`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -543,6 +564,15 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
 
                  <div className="space-y-3">
                     <label className="text-xs text-accent-yellow font-mono font-bold flex items-center gap-2"><Sparkles size={12}/> BRANDING</label>
+
+                    <input
+                      type="text"
+                      placeholder="Project Name (e.g. FounderFlow)"
+                      value={localProjectName}
+                      onChange={(e) => setLocalProjectName(e.target.value)}
+                      className="w-full bg-gray-900 border border-gray-700 text-white text-xs p-2 rounded focus:border-accent-yellow focus:outline-none"
+                    />
+
                     <button
                       onClick={handleGenerateLogo}
                       disabled={isGeneratingLogo}
@@ -554,7 +584,7 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
 
                     <div className="flex items-center gap-2">
                          <div className="h-px bg-gray-800 flex-1"></div>
-                         <span className="text-[10px] text-gray-600">OR</span>
+                         <span className="text-[10px] text-gray-600">OR UPLOAD</span>
                          <div className="h-px bg-gray-800 flex-1"></div>
                     </div>
 
@@ -567,22 +597,26 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
                     }} className="text-xs text-gray-500 w-full file:bg-gray-800 file:text-white file:border-0 file:rounded file:px-2 file:text-xs"/>
 
                     {logoFile && (
-                        <div className="bg-gray-900 p-3 rounded space-y-2">
+                        <div className="bg-gray-900 p-3 rounded space-y-2 border border-gray-800">
                             <div className="flex justify-between items-center mb-1">
-                                <span className="text-[10px] text-gray-400">SIZE: {logoSize}px</span>
-                                <button onClick={handleDownloadLogo} className="text-accent-yellow hover:text-white transition-colors flex items-center gap-1 text-[10px] bg-gray-800 px-2 py-1 rounded" title="Download Logo">
-                                    <Save size={12} /> SAVE
+                                <span className="text-[10px] text-gray-400 font-mono">LOGO SIZE</span>
+                                <button
+                                  onClick={handleDownloadLogo}
+                                  className="text-black bg-accent-yellow hover:bg-white transition-colors flex items-center gap-1 text-[9px] font-bold px-2 py-1 rounded"
+                                  title="Download Logo"
+                                >
+                                    <Download size={10} /> SAVE PNG
                                 </button>
                             </div>
                             <input
                                 type="range" min="50" max="400"
                                 value={logoSize} onChange={(e) => setLogoSize(Number(e.target.value))}
-                                className="w-full accent-accent-yellow h-1 bg-gray-700 rounded-lg appearance-none"
+                                className="w-full accent-accent-yellow h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer"
                             />
-                            <div className="text-[10px] text-gray-400 mb-1">POSITION</div>
+                            <div className="text-[10px] text-gray-400 font-mono mt-1">POSITION</div>
                             <select
                                 value={logoPosition} onChange={(e) => setLogoPosition(e.target.value)}
-                                className="w-full bg-black text-xs text-white border border-gray-700 rounded p-2"
+                                className="w-full bg-black text-xs text-white border border-gray-700 rounded p-2 focus:outline-none focus:border-accent-yellow"
                             >
                                 <option value="top-right">Top Right</option>
                                 <option value="top-left">Top Left</option>
@@ -670,12 +704,8 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
                        </div>
                     </div>
 
-                    <div className="absolute top-1/2 left-0 right-0 z-40 pointer-events-none">
-                       <div className="relative w-full h-20 flex items-center justify-center">
-                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-accent-yellow/20 to-transparent" />
-                          <div className="absolute inset-0 border-y-2 border-accent-yellow/40" />
-                          <div className="absolute right-4 top-1 text-[9px] text-accent-yellow/60 font-mono bg-black/60 px-2 py-0.5 rounded">READ HERE</div>
-                       </div>
+                    <div className="absolute top-[35%] w-full border-t border-red-500/50 border-dashed flex justify-end opacity-70 z-20">
+                       <span className="text-[10px] text-red-500 bg-black/80 px-1 rounded">EYE LEVEL</span>
                     </div>
                  </div>
 
