@@ -3,7 +3,7 @@ import {
   Film, Music, Video, Sparkles, Cpu, Image as ImageIcon,
   Mic, Palette, Wand2, Download,
   Play, Pause, Type, MoveVertical, FlipHorizontal, Maximize2, X,
-  AlertTriangle
+  AlertTriangle, Save
 } from 'lucide-react';
 import { CyberCard } from './CyberCard';
 import { databaseService } from '../services/database';
@@ -110,18 +110,15 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
   useEffect(() => {
     if (isExpanded) {
       startCamera();
-      // We start the loop, but the specific logic (AI vs Standard) is handled inside startRenderingLoop
       startRenderingLoop();
     } else {
       cleanupResources();
     }
-    // We intentionally don't put startRenderingLoop in the dependency array to avoid double-firing
   }, [isExpanded]);
 
   // Force redraw when logo size or position changes
   useEffect(() => {
     if (isExpanded && canvasRef.current && !isRecording) {
-      // Trigger a single redraw
       if (enableAI && selfieSegmentationRef.current && !modelLoading) {
         // AI will handle it in the next frame
       } else {
@@ -138,7 +135,6 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
     }
     const scrollLoop = () => {
       if (isRecording && !isPaused && teleprompterRef.current) {
-        // Accumulate float values to handle slow speeds smoothly
         scrollAccumulatorRef.current += (scrollSpeed * 0.3);
         teleprompterRef.current.scrollTop = scrollAccumulatorRef.current;
       }
@@ -222,7 +218,6 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
         return;
       }
 
-      // DECISION: AI Processing or Standard Draw?
       if (enableAI && selfieSegmentationRef.current && !modelLoading) {
          try {
            await selfieSegmentationRef.current.send({ image: videoRef.current });
@@ -248,15 +243,14 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
     }
   };
 
-  // Standard Mode (Fast, Low CPU)
   const drawStandardFrame = () => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
     const video = videoRef.current;
     if (!canvas || !ctx || !video) return;
 
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    canvas.width = video.videoWidth || 1920;
+    canvas.height = video.videoHeight || 1080;
 
     ctx.save();
     ctx.translate(canvas.width, 0);
@@ -268,7 +262,6 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
     drawLogo(ctx, canvas.width, canvas.height);
   };
 
-  // AI Mode (Heavy, Green Screen)
   const onAIResults = (results: any) => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
@@ -280,7 +273,6 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
     ctx.save();
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // 1. Draw Background
     ctx.translate(canvas.width, 0);
     ctx.scale(-1, 1);
 
@@ -297,7 +289,6 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
       ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
     }
 
-    // 2. Apply mask to cut out person
     ctx.globalCompositeOperation = 'destination-in';
     ctx.filter = 'none';
 
@@ -313,7 +304,6 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
       ctx.drawImage(tempCanvas, 0, 0);
     }
 
-    // 3. Draw person on top
     ctx.globalCompositeOperation = 'destination-over';
     applyFilters(ctx);
     ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
@@ -374,9 +364,18 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
     }
   };
 
+  const handleDownloadLogo = () => {
+    if (!logoFile) return;
+    const a = document.createElement('a');
+    a.href = logoFile;
+    a.download = `logo-${projectName || 'project'}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
   // --- RECORDING ---
   const startRecording = () => {
-    // Reset
     if (teleprompterRef.current) teleprompterRef.current.scrollTop = 0;
     scrollAccumulatorRef.current = 0;
 
@@ -397,7 +396,7 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
     if (!canvasRef.current || !videoRef.current) return;
 
     const stream = videoRef.current.srcObject as MediaStream;
-    const mixedTracks = stream.getAudioTracks(); // Simple fallback
+    const mixedTracks = stream.getAudioTracks();
 
     const canvasStream = canvasRef.current.captureStream(30);
     mixedTracks.forEach(t => canvasStream.addTrack(t));
@@ -460,7 +459,7 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
             await ffmpeg.deleteFile('output.mp4');
         } catch (e) {
             console.error(e);
-            alert("MP4 conversion unavailable (Security Context). Downloading WebM.");
+            alert("MP4 conversion unavailable. Downloading WebM.");
             download(blob, 'webm');
         } finally {
             setIsConverting(false);
@@ -480,17 +479,17 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
 
   const sections = (pitchScript && pitchScript.problem) ? (
     pitchScript.script_type === 'demo' ? [
-      { title: 'PROBLEM', text: pitchScript.problem },
-      { title: 'SOLUTION', text: pitchScript.solution },
-      { title: 'TRACTION', text: pitchScript.traction },
+      { text: pitchScript.problem },
+      { text: pitchScript.solution },
+      { text: pitchScript.traction },
     ] : [
-      { title: 'PROBLEM', text: pitchScript.problem },
-      { title: 'SOLUTION', text: pitchScript.solution },
-      { title: 'TRACTION', text: pitchScript.traction },
+      { text: pitchScript.problem },
+      { text: pitchScript.solution },
+      { text: pitchScript.traction },
     ]
   ) : [
-    { title: 'READY', text: 'Script will appear here.' },
-    { title: 'SCROLL', text: 'Text scrolls when recording starts.' }
+    { text: 'Script will appear here.' },
+    { text: 'Text scrolls when recording starts.' }
   ];
 
   return (
@@ -502,7 +501,6 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
     >
       <audio ref={bgAudioElementRef} src={audioFile} loop crossOrigin="anonymous" />
 
-      {/* Mini View */}
       {!isExpanded && (
         <div className="text-center py-12 border border-dashed border-gray-800 rounded-lg">
            <Film size={48} className="mx-auto text-gray-700 mb-4" />
@@ -516,11 +514,9 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
         </div>
       )}
 
-      {/* FULL SCREEN STUDIO */}
       {isExpanded && (
         <div className="fixed inset-0 z-50 bg-black flex flex-col animate-in fade-in duration-300">
 
-           {/* Header */}
            <div className="h-16 border-b border-gray-800 bg-gray-900/50 flex items-center justify-between px-6 backdrop-blur">
               <div className="flex items-center gap-4">
                  <div className="flex items-center gap-2 text-accent-yellow font-bold">
@@ -550,13 +546,10 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
               </div>
            </div>
 
-           {/* MAIN WORKSPACE */}
            <div className="flex-1 relative overflow-hidden flex">
 
-              {/* SIDEBAR */}
               <div className="w-72 bg-black border-r border-gray-800 p-4 space-y-6 overflow-y-auto hidden md:block z-20">
 
-                 {/* Logo Tool */}
                  <div className="space-y-3">
                     <label className="text-xs text-accent-yellow font-mono font-bold flex items-center gap-2"><Sparkles size={12}/> BRANDING</label>
                     <button
@@ -584,9 +577,14 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
 
                     {logoFile && (
                         <div className="bg-gray-900 p-3 rounded space-y-2">
-                            <div className="flex justify-between text-[10px] text-gray-400">
+                            <div className="flex justify-between items-center text-[10px] text-gray-400">
                                 <span>SIZE</span>
-                                <span>{logoSize}px</span>
+                                <div className="flex gap-2">
+                                    <button onClick={handleDownloadLogo} className="text-accent-yellow hover:text-white" title="Download Logo">
+                                        <Save size={12} />
+                                    </button>
+                                    <span>{logoSize}px</span>
+                                </div>
                             </div>
                             <input
                                 type="range" min="50" max="400"
@@ -608,7 +606,6 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
 
                  <div className="h-px bg-gray-800" />
 
-                 {/* AI Background (Restored) */}
                  <div className="space-y-2">
                     <div className="flex items-center justify-between">
                        <label className="text-xs text-gray-500 font-mono flex items-center gap-2"><Cpu size={12}/> AI BACKDROP</label>
@@ -634,7 +631,6 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
 
                  <div className="h-px bg-gray-800" />
 
-                 {/* Filters */}
                  <div className="space-y-2">
                     <label className="text-xs text-gray-500 font-mono flex items-center gap-2"><Palette size={12}/> FILTERS</label>
                     <div className="grid grid-cols-2 gap-2">
@@ -646,7 +642,6 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
 
                  <div className="h-px bg-gray-800" />
 
-                 {/* Export Format */}
                  <div className="space-y-2">
                     <label className="text-xs text-gray-500 font-mono">EXPORT</label>
                     <div className="flex gap-2">
@@ -656,12 +651,10 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
                  </div>
               </div>
 
-              {/* VIDEO AREA */}
               <div className="flex-1 relative bg-black flex items-center justify-center">
                  <canvas ref={canvasRef} className="max-w-full max-h-full aspect-video shadow-2xl bg-gray-900" />
                  <video ref={videoRef} className="hidden" playsInline muted autoPlay />
 
-                 {/* TELEPROMPTER OVERLAY */}
                  <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center max-w-[80%] mx-auto">
                     <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-black via-black/50 to-transparent z-10" />
                     <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black via-black/50 to-transparent z-10" />
@@ -713,7 +706,6 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
               </div>
            </div>
 
-           {/* FOOTER CONTROLS */}
            <div className="h-24 bg-black border-t border-gray-800 flex items-center justify-center gap-6">
               {!isRecording ? (
                  <button
