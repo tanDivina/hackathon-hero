@@ -92,6 +92,13 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
     filterRef.current = videoFilter;
   }, [logoSize, logoPosition, videoFilter]);
 
+  // Update local project name when prop changes
+  useEffect(() => {
+    if (projectName) {
+      setLocalProjectName(projectName);
+    }
+  }, [projectName]);
+
   // --- LIFECYCLE ---
   useEffect(() => {
     if (projectId) loadSavedAssets();
