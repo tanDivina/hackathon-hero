@@ -15,6 +15,7 @@ interface VideoCreatorProps {
   isPro: boolean;
   projectId?: string;
   onUpgradeClick?: () => void;
+  projectName?: string;
   pitchScript?: {
     problem: string;
     solution: string;
@@ -26,7 +27,7 @@ interface VideoCreatorProps {
   };
 }
 
-export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, onUpgradeClick, pitchScript }) => {
+export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, onUpgradeClick, projectName, pitchScript }) => {
   // --- STATE ---
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -116,6 +117,18 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
     }
     // We intentionally don't put startRenderingLoop in the dependency array to avoid double-firing
   }, [isExpanded]);
+
+  // Force redraw when logo size or position changes
+  useEffect(() => {
+    if (isExpanded && canvasRef.current && !isRecording) {
+      // Trigger a single redraw
+      if (enableAI && selfieSegmentationRef.current && !modelLoading) {
+        // AI will handle it in the next frame
+      } else {
+        drawStandardFrame();
+      }
+    }
+  }, [logoSize, logoPosition]);
 
   // Scroll Loop
   useEffect(() => {
@@ -324,10 +337,19 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
 
   // --- LOGO GEN ---
   const handleGenerateLogo = async () => {
-    if (!pitchScript?.problem) return alert("Script required!");
+    if (!projectName && !pitchScript?.problem) return alert("Project name or script required!");
     setIsGeneratingLogo(true);
     try {
-      const contextPrompt = `A startup solving: "${pitchScript.problem.substring(0, 50)}..."`;
+      let contextPrompt = '';
+      if (projectName) {
+        contextPrompt = `A modern, professional logo for "${projectName}"`;
+        if (pitchScript?.problem) {
+          contextPrompt += `, a startup solving: "${pitchScript.problem.substring(0, 40)}..."`;
+        }
+      } else if (pitchScript?.problem) {
+        contextPrompt = `A startup solving: "${pitchScript.problem.substring(0, 50)}..."`;
+      }
+
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 

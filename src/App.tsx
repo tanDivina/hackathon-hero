@@ -587,6 +587,7 @@ function HackathonWizard() {
             <VideoCreator
               isPro={isPro}
               projectId={currentProject?.id}
+              projectName={currentProject?.name}
               onUpgradeClick={() => setShowProModal(true)}
               pitchScript={currentPitchScript ? {
                 problem: currentPitchScript.problem,
