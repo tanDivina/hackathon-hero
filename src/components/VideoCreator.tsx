@@ -116,16 +116,7 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
     }
   }, [isExpanded]);
 
-  // Force redraw when logo size or position changes
-  useEffect(() => {
-    if (isExpanded && canvasRef.current && !isRecording) {
-      if (enableAI && selfieSegmentationRef.current && !modelLoading) {
-        // AI will handle it in the next frame
-      } else {
-        drawStandardFrame();
-      }
-    }
-  }, [logoSize, logoPosition]);
+  // Force redraw when logo size or position changes (removed - handled by render loop)
 
   // Scroll Loop
   useEffect(() => {
@@ -577,23 +568,21 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
 
                     {logoFile && (
                         <div className="bg-gray-900 p-3 rounded space-y-2">
-                            <div className="flex justify-between items-center text-[10px] text-gray-400">
-                                <span>SIZE</span>
-                                <div className="flex gap-2">
-                                    <button onClick={handleDownloadLogo} className="text-accent-yellow hover:text-white" title="Download Logo">
-                                        <Save size={12} />
-                                    </button>
-                                    <span>{logoSize}px</span>
-                                </div>
+                            <div className="flex justify-between items-center mb-1">
+                                <span className="text-[10px] text-gray-400">SIZE: {logoSize}px</span>
+                                <button onClick={handleDownloadLogo} className="text-accent-yellow hover:text-white transition-colors flex items-center gap-1 text-[10px] bg-gray-800 px-2 py-1 rounded" title="Download Logo">
+                                    <Save size={12} /> SAVE
+                                </button>
                             </div>
                             <input
                                 type="range" min="50" max="400"
                                 value={logoSize} onChange={(e) => setLogoSize(Number(e.target.value))}
                                 className="w-full accent-accent-yellow h-1 bg-gray-700 rounded-lg appearance-none"
                             />
+                            <div className="text-[10px] text-gray-400 mb-1">POSITION</div>
                             <select
                                 value={logoPosition} onChange={(e) => setLogoPosition(e.target.value)}
-                                className="w-full bg-black text-xs text-white border border-gray-700 rounded p-1"
+                                className="w-full bg-black text-xs text-white border border-gray-700 rounded p-2"
                             >
                                 <option value="top-right">Top Right</option>
                                 <option value="top-left">Top Left</option>
