@@ -80,6 +80,16 @@ export const PitchScript: React.FC<PitchScriptProps> = ({ onGenerate, isPro, pro
     const ideaData = await databaseService.getIdea(projectId);
     const latestIdea = ideaData?.idea_text || '';
 
+    // If we have a freshly generated script (not saved yet), only update the idea
+    // Don't overwrite the generated script with old data from database
+    if (script && !isGenerating) {
+      // Only update idea if it changed
+      if (latestIdea !== idea) {
+        setIdea(latestIdea);
+      }
+      return;
+    }
+
     const saved = await databaseService.getPitchScript(projectId);
     if (saved) {
       setIdea(latestIdea);
