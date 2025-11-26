@@ -71,17 +71,17 @@ export const PitchScript: React.FC<PitchScriptProps> = ({ onGenerate, isPro, pro
   };
 
   const loadSavedData = async () => {
-    resetForm();
-
-    if (!projectId) return;
+    if (!projectId) {
+      resetForm();
+      return;
+    }
 
     const ideaData = await databaseService.getIdea(projectId);
     const latestIdea = ideaData?.idea_text || '';
 
-    setIdea(latestIdea);
-
     const saved = await databaseService.getPitchScript(projectId);
     if (saved) {
+      setIdea(latestIdea);
       setScriptType(saved.script_type || 'pitch');
       setGithubUrl(saved.github_url || '');
       setYourName(saved.your_name || '');
@@ -114,6 +114,13 @@ export const PitchScript: React.FC<PitchScriptProps> = ({ onGenerate, isPro, pro
           fullScript: `PROBLEM (60s):\n${saved.problem}\n\nSOLUTION (90s):\n${saved.solution}\n\nTRACTION (30s):\n${saved.traction}`,
         });
       }
+    } else {
+      // No saved script, just set the idea
+      setIdea(latestIdea);
+      setScript(null);
+      setScriptType('pitch');
+      setGithubUrl('');
+      setYourName('');
     }
   };
 

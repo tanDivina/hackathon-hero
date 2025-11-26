@@ -495,6 +495,7 @@ export const databaseService = {
       .from('ideas')
       .select('id')
       .eq('project_id', projectId)
+      .eq('is_candidate', false)
       .maybeSingle();
 
     if (existing) {
