@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, Copy, Check } from 'lucide-react';
+import { Sparkles, Copy, Check, Download } from 'lucide-react';
 import { CyberCard } from './CyberCard';
 import { databaseService } from '../services/database';
 
@@ -65,6 +65,19 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({ onOptimize, is
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleDownload = () => {
+    const content = `PROJECT IDEA:\n${idea}\n\n${'='.repeat(60)}\n\nOPTIMIZED PROMPT (${wordCount} words):\n\n${optimizedPrompt}`;
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'optimized-prompt.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div data-component="prompt-optimizer">
       <CyberCard
@@ -94,22 +107,31 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({ onOptimize, is
               <span className="text-xs text-gray-500 font-mono uppercase tracking-wider">
                 {wordCount} words
               </span>
-              <button
-                onClick={handleCopy}
-                className="flex items-center gap-2 px-3 py-1.5 border border-gray-800 text-gray-400 hover:text-white hover:border-gray-700 transition-colors text-xs font-mono"
-              >
-                {copied ? (
-                  <>
-                    <Check size={14} />
-                    COPIED
-                  </>
-                ) : (
-                  <>
-                    <Copy size={14} />
-                    COPY
-                  </>
-                )}
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleDownload}
+                  className="flex items-center gap-2 px-3 py-1.5 border border-gray-800 text-gray-400 hover:text-white hover:border-gray-700 transition-colors text-xs font-mono"
+                >
+                  <Download size={14} />
+                  DOWNLOAD
+                </button>
+                <button
+                  onClick={handleCopy}
+                  className="flex items-center gap-2 px-3 py-1.5 border border-gray-800 text-gray-400 hover:text-white hover:border-gray-700 transition-colors text-xs font-mono"
+                >
+                  {copied ? (
+                    <>
+                      <Check size={14} />
+                      COPIED
+                    </>
+                  ) : (
+                    <>
+                      <Copy size={14} />
+                      COPY
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
 
             <div className="bg-black border border-gray-800 p-4 max-h-64 overflow-y-auto">

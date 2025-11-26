@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Lightbulb, RefreshCw, ArrowRight, ArrowLeft, Sparkles, Zap, Target } from 'lucide-react';
+import { Lightbulb, RefreshCw, ArrowRight, ArrowLeft, Sparkles, Zap, Target, Download } from 'lucide-react';
 import { CyberCard } from './CyberCard';
 import { databaseService, IdeaData } from '../services/database';
 import { CandidateIdeaData } from '../services/aiService';
@@ -184,6 +184,22 @@ export const IdeaGenerator: React.FC<IdeaGeneratorProps> = ({
     }
   };
 
+  const handleDownloadIdea = () => {
+    if (!expandedIdea) return;
+
+    const content = `${expandedIdeaName ? `${expandedIdeaName}\n${'='.repeat(expandedIdeaName.length)}\n\n` : ''}CATEGORY: ${expandedIdea.category}\n\nPROJECT IDEA:\n${expandedIdea.idea}\n\n${'='.repeat(60)}\n\nREASONING:\n${expandedIdea.reasoning}\n\n${'='.repeat(60)}\n\nSPONSOR ALIGNMENT:\n${expandedIdea.sponsorAlignment}`;
+
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = expandedIdeaName ? `${expandedIdeaName.toLowerCase().replace(/\s+/g, '-')}-idea.txt` : 'project-idea.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <CyberCard
       icon={<Lightbulb size={32} strokeWidth={1.5} />}
@@ -359,12 +375,21 @@ export const IdeaGenerator: React.FC<IdeaGeneratorProps> = ({
                 </div>
 
                 <div className="flex items-center justify-between mb-4">
-                  <span className="px-3 py-1.5 bg-accent-yellow/10 border border-accent-yellow/30 text-accent-yellow text-xs font-mono">
-                    {expandedIdea.category}
-                  </span>
-                  {expandedIdeaName && (
-                    <span className="text-sm font-bold text-white">{expandedIdeaName}</span>
-                  )}
+                  <div className="flex items-center gap-3">
+                    <span className="px-3 py-1.5 bg-accent-yellow/10 border border-accent-yellow/30 text-accent-yellow text-xs font-mono">
+                      {expandedIdea.category}
+                    </span>
+                    {expandedIdeaName && (
+                      <span className="text-sm font-bold text-white">{expandedIdeaName}</span>
+                    )}
+                  </div>
+                  <button
+                    onClick={handleDownloadIdea}
+                    className="flex items-center gap-2 px-3 py-1.5 border border-gray-800 text-gray-400 hover:text-white hover:border-gray-700 transition-colors text-xs font-mono"
+                  >
+                    <Download size={14} />
+                    DOWNLOAD
+                  </button>
                 </div>
 
                 <div className="border-l-2 border-accent-yellow pl-4">
