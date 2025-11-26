@@ -23,12 +23,13 @@ interface PitchScriptProps {
   onGenerate: (idea: string, scriptType: 'pitch' | 'demo' | 'intro', githubUrl?: string, yourName?: string) => Promise<ScriptSections>;
   isPro: boolean;
   projectId?: string;
+  reloadKey?: number;
   onShowProModal?: () => void;
 }
 
 type SectionKey = 'problem' | 'solution' | 'traction' | 'requirements' | 'tools' | 'realworld_use' | 'who' | 'what' | 'why';
 
-export const PitchScript: React.FC<PitchScriptProps> = ({ onGenerate, isPro, projectId, onShowProModal }) => {
+export const PitchScript: React.FC<PitchScriptProps> = ({ onGenerate, isPro, projectId, reloadKey, onShowProModal }) => {
   const [idea, setIdea] = useState('');
   const [scriptType, setScriptType] = useState<'pitch' | 'demo' | 'intro'>('pitch');
   const [yourName, setYourName] = useState('');
@@ -43,7 +44,7 @@ export const PitchScript: React.FC<PitchScriptProps> = ({ onGenerate, isPro, pro
 
   useEffect(() => {
     loadSavedData();
-  }, [projectId]);
+  }, [projectId, reloadKey]);
 
   useEffect(() => {
     const checkForNewIdea = async () => {

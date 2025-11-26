@@ -40,6 +40,7 @@ function HackathonWizard() {
   const [deadline, setDeadline] = useState<string>('');
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [optimizerReloadKey, setOptimizerReloadKey] = useState(0);
+  const [scriptReloadKey, setScriptReloadKey] = useState(0);
 
   const handleExitIntent = useCallback(() => {
     if (isPro) return;
@@ -366,6 +367,10 @@ function HackathonWizard() {
         result.prompt,
         result.wordCount
       );
+
+      // Trigger reload in PitchScript
+      setScriptReloadKey(prev => prev + 1);
+
       setIsSaving(false);
     }
 
@@ -635,6 +640,7 @@ function HackathonWizard() {
                   await new Promise(resolve => setTimeout(resolve, 50));
 
                   setOptimizerReloadKey(prev => prev + 1);
+                  setScriptReloadKey(prev => prev + 1);
 
                   setTimeout(() => {
                     const optimizerElement = document.querySelector('[data-component="prompt-optimizer"]');
@@ -657,6 +663,7 @@ function HackathonWizard() {
               onGenerate={handleGeneratePitch}
               isPro={isPro}
               projectId={currentProject?.id}
+              reloadKey={scriptReloadKey}
               onShowProModal={() => setShowProModal(true)}
             />
             <VideoCreator
