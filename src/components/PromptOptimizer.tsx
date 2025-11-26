@@ -22,11 +22,12 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({ onOptimize, is
   }, [projectId, reloadKey]);
 
   const loadSavedData = async () => {
-    setIdea('');
-    setOptimizedPrompt('');
-    setWordCount(0);
-
-    if (!projectId) return;
+    if (!projectId) {
+      setIdea('');
+      setOptimizedPrompt('');
+      setWordCount(0);
+      return;
+    }
 
     const ideaData = await databaseService.getIdea(projectId);
     const latestIdea = ideaData?.idea_text || '';
@@ -37,6 +38,9 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({ onOptimize, is
     if (saved) {
       setOptimizedPrompt(saved.optimized_prompt);
       setWordCount(saved.word_count);
+    } else {
+      setOptimizedPrompt('');
+      setWordCount(0);
     }
   };
 

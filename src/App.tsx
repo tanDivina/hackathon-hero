@@ -611,26 +611,40 @@ function HackathonWizard() {
                 if (!currentProject) return;
 
                 setIsSaving(true);
-                const savedIdea = await databaseService.getIdea(currentProject.id);
+                try {
+                  const savedIdea = await databaseService.getIdea(currentProject.id);
 
-                if (savedIdea) {
-                  await databaseService.saveIdea(currentProject.id, {
-                    idea_text: idea,
-                    category: savedIdea.category,
-                    reasoning: savedIdea.reasoning,
-                    sponsor_alignment: savedIdea.sponsor_alignment,
-                  });
+                  if (savedIdea) {
+                    await databaseService.saveIdea(currentProject.id, {
+                      idea_text: idea,
+                      category: savedIdea.category,
+                      reasoning: savedIdea.reasoning,
+                      sponsor_alignment: savedIdea.sponsor_alignment,
+                    });
+                  } else {
+                    // No saved idea exists yet, create a new one
+                    await databaseService.saveIdea(currentProject.id, {
+                      idea_text: idea,
+                      category: 'Uncategorized',
+                      reasoning: '',
+                      sponsor_alignment: '',
+                    });
+                  }
+
+                  // Small delay to ensure database transaction completes
+                  await new Promise(resolve => setTimeout(resolve, 50));
 
                   setOptimizerReloadKey(prev => prev + 1);
-                }
-                setIsSaving(false);
 
-                setTimeout(() => {
-                  const optimizerElement = document.querySelector('[data-component="prompt-optimizer"]');
-                  if (optimizerElement) {
-                    optimizerElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                  }
-                }, 100);
+                  setTimeout(() => {
+                    const optimizerElement = document.querySelector('[data-component="prompt-optimizer"]');
+                    if (optimizerElement) {
+                      optimizerElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                  }, 100);
+                } finally {
+                  setIsSaving(false);
+                }
               }}
             />
             <PromptOptimizer
