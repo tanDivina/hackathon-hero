@@ -87,7 +87,8 @@ function HackathonWizard() {
       if (newProject) {
         setCurrentProject(newProject);
       }
-    } else {
+    } else if (!currentProject) {
+      // Only set project if none is selected
       setCurrentProject(projects[0]);
     }
   };
