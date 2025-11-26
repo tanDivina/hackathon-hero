@@ -621,9 +621,8 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
                        <div style={{ paddingTop: '40vh', paddingBottom: '50vh' }}>
                           {sections.map((section, idx) => (
                              <div key={idx} className="mb-32">
-                                <h3 className="text-accent-yellow text-sm font-mono mb-2 uppercase tracking-widest">{section.title}</h3>
                                 <p
-                                  className="font-bold text-white leading-relaxed drop-shadow-[0_4px_4px_rgba(0,0,0,1)] px-6 py-4 bg-black/40 rounded-xl backdrop-blur-[2px] inline-block"
+                                  className="font-bold text-white leading-relaxed drop-shadow-[0_4px_4px_rgba(0,0,0,1)] px-6 py-4 inline-block"
                                   style={{ fontSize: `${fontSize}px` }}
                                 >
                                    {section.text}
@@ -633,8 +632,12 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
                        </div>
                     </div>
 
-                    <div className="absolute top-[35%] w-full border-t border-red-500/50 border-dashed flex justify-end opacity-70 z-20">
-                       <span className="text-[10px] text-red-500 bg-black/80 px-1 rounded">EYE LEVEL</span>
+                    <div className="absolute top-1/2 left-0 right-0 z-40 pointer-events-none">
+                       <div className="relative w-full h-20 flex items-center justify-center">
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-accent-yellow/20 to-transparent" />
+                          <div className="absolute inset-0 border-y-2 border-accent-yellow/40" />
+                          <div className="absolute right-4 top-1 text-[9px] text-accent-yellow/60 font-mono bg-black/60 px-2 py-0.5 rounded">READ HERE</div>
+                       </div>
                     </div>
                  </div>
 
