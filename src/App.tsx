@@ -39,6 +39,7 @@ function HackathonWizard() {
   const [hasRules, setHasRules] = useState(false);
   const [deadline, setDeadline] = useState<string>('');
   const [showInfoModal, setShowInfoModal] = useState(false);
+  const [optimizerReloadKey, setOptimizerReloadKey] = useState(0);
 
   const handleExitIntent = useCallback(() => {
     if (isPro) return;
@@ -606,25 +607,37 @@ function HackathonWizard() {
               onExpandCandidate={handleExpandCandidate}
               hasRules={hasRules}
               projectId={currentProject?.id}
-              onSendToOptimizer={(idea, ideaName) => {
-                const optimizerElement = document.querySelector('[data-component="prompt-optimizer"]');
-                if (optimizerElement) {
-                  optimizerElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                  const textarea = optimizerElement.querySelector('textarea');
-                  if (textarea) {
-                    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set;
-                    if (nativeInputValueSetter) {
-                      nativeInputValueSetter.call(textarea, idea);
-                      textarea.dispatchEvent(new Event('input', { bubbles: true }));
-                    }
-                  }
+              onSendToOptimizer={async (idea, ideaName) => {
+                if (!currentProject) return;
+
+                setIsSaving(true);
+                const savedIdea = await databaseService.getIdea(currentProject.id);
+
+                if (savedIdea) {
+                  await databaseService.saveIdea(currentProject.id, {
+                    idea_text: idea,
+                    category: savedIdea.category,
+                    reasoning: savedIdea.reasoning,
+                    sponsor_alignment: savedIdea.sponsor_alignment,
+                  });
+
+                  setOptimizerReloadKey(prev => prev + 1);
                 }
+                setIsSaving(false);
+
+                setTimeout(() => {
+                  const optimizerElement = document.querySelector('[data-component="prompt-optimizer"]');
+                  if (optimizerElement) {
+                    optimizerElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  }
+                }, 100);
               }}
             />
             <PromptOptimizer
               onOptimize={handleOptimizePrompt}
               isPro={isPro}
               projectId={currentProject?.id}
+              reloadKey={optimizerReloadKey}
             />
             <PitchScript
               onGenerate={handleGeneratePitch}

@@ -7,9 +7,10 @@ interface PromptOptimizerProps {
   onOptimize: (idea: string) => Promise<{ prompt: string; wordCount: number }>;
   isPro: boolean;
   projectId?: string;
+  reloadKey?: number;
 }
 
-export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({ onOptimize, isPro, projectId }) => {
+export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({ onOptimize, isPro, projectId, reloadKey }) => {
   const [idea, setIdea] = useState('');
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [optimizedPrompt, setOptimizedPrompt] = useState('');
@@ -18,7 +19,7 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({ onOptimize, is
 
   useEffect(() => {
     loadSavedData();
-  }, [projectId]);
+  }, [projectId, reloadKey]);
 
   const loadSavedData = async () => {
     setIdea('');
