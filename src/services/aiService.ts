@@ -262,7 +262,30 @@ ${rulesData.fullRulesText ? `IMPORTANT: Read the full rules document above caref
 - Special tracks or categories
 - Any unique requirements mentioned in the full text
 
-` : ''}${specificGoalInstruction}
+` : ''}
+🎯 CRITICAL: THEME ANALYSIS (COMPLETE BEFORE GENERATING)
+
+Analyze if "${rulesData.theme}" is VERTICAL or HORIZONTAL:
+
+VERTICAL (Industry/Topic): Content MUST be about this subject
+- Examples: Healthcare, FinTech, Education, Climate, Music
+- Application: Project must be in this industry/domain
+
+HORIZONTAL (Vibe/Style/Approach): Content can be ANY subject, style applied to execution
+- Examples: Founder, Innovation, Retro, Speed, AI-Powered, Accessibility
+- Application: Pick any industry, apply theme to HOW you build
+  * "Founder" = Build a viable startup in ANY industry
+  * "Retro" = Modern app in ANY domain with retro styling
+  * "Speed" = Build fast in ANY category
+
+❌ NEGATIVE CONSTRAINTS:
+- Do NOT force theme keyword into target audience unless it's VERTICAL
+- Do NOT build "app for [theme] people" when theme is HORIZONTAL
+- "Founder" theme = build a startup, NOT target founders as users
+
+✅ VALIDATION: Ask "Does this sound like human interpretation or keyword matching?"
+
+${specificGoalInstruction}
 
 OUTPUT FORMAT (JSON only):
 {
@@ -348,13 +371,67 @@ ${rulesData.judgingCriteria.join('\n')}
 DEADLINE: ${rulesData.deadline}
 ${userDirectionSection}${insiderIntelSection}
 
+🎯 CRITICAL: THEME ANALYSIS STEP (MUST COMPLETE BEFORE GENERATING IDEAS)
+
+STEP 1: Analyze the Theme Type
+Determine if "${rulesData.theme}" is a VERTICAL or HORIZONTAL theme:
+
+VERTICAL THEMES (Industry/Topic/Domain):
+- These are CONTENT constraints - the project MUST be about this subject
+- Examples: "Healthcare", "FinTech", "Education", "Climate", "Music", "Food", "Transportation"
+- Recognition Pattern: If it's a noun describing an industry, domain, or subject area
+- Application: The idea content MUST match this topic (e.g., "Healthcare" = build something for patients/doctors/hospitals)
+
+HORIZONTAL THEMES (Vibe/Style/Constraint/Approach):
+- These are EXECUTION constraints - the project can be about ANY subject, but executed in this style
+- Examples: "Founder", "Innovation", "Speed", "Retro", "AI-Powered", "Social Good", "Accessibility", "Open Innovation"
+- Recognition Pattern: If it's an adjective, approach, or describes HOW to build (not WHAT to build about)
+- Application: Pick ANY industry/problem, then apply the theme to execution
+  * "Founder" = Build a viable startup/SaaS in ANY industry
+  * "Retro" = Modern app in ANY domain with retro 8-bit styling
+  * "Speed" = Something built fast in ANY category
+  * "AI-Powered" = ANY tool enhanced with AI
+  * "Innovation" = Creative approach to ANY problem
+
+STEP 2: Apply Negative Constraints
+❌ DO NOT force the theme keyword into the target audience unless it's a VERTICAL
+❌ DO NOT build "an app for [theme] people" when theme is HORIZONTAL
+❌ DO NOT build "Cat Founders" when theme is "Founder" (Founder = build a startup, not target founders)
+❌ DO NOT build "a tool for retro enthusiasts" when theme is "Retro" (Retro = 8-bit style, not target audience)
+
+STEP 3: Validation Check
+Before finalizing each idea, ask yourself:
+"Does this sound like a human interpretation of the theme, or a robot matching keywords?"
+
+EXAMPLES OF CORRECT THEME APPLICATION:
+
+Theme: "Founder"
+❌ WRONG: "FounderConnect - A platform for founders to network" (treating it as target audience)
+✅ RIGHT: "MealPrepMVP - A meal planning SaaS for busy professionals" (treating it as execution: build a viable startup)
+
+Theme: "Retro"
+❌ WRONG: "RetroHub - A social network for retro gaming fans" (treating it as target audience)
+✅ RIGHT: "TaskQuest - A productivity app with 8-bit pixel art UI and chiptune sounds" (treating it as visual style)
+
+Theme: "Healthcare"
+✅ RIGHT: "MediTrack - A patient medication reminder app" (treating it as industry vertical - correct!)
+❌ WRONG: "HealthyStartup - A SaaS for any industry with health features" (diluting the vertical)
+
+Theme: "AI-Powered"
+❌ WRONG: "AI Learning Platform - Teach people about AI" (treating it as content)
+✅ RIGHT: "SmartRecipes - A cooking app that uses AI to suggest recipes from your ingredients" (treating it as execution method)
+
 TASK: ${specificGoalInstruction}
+
+Now generate 3 candidates that properly interpret the theme based on your analysis above.
 
 Each candidate must be:
 1. DISTINCT from the others (different approaches/categories)
-2. Aligned with judging criteria
-3. Feasible within the deadline
-4. Unique and innovative
+2. Correctly interpret the theme as VERTICAL or HORIZONTAL
+3. Aligned with judging criteria
+4. Feasible within the deadline
+5. Unique and innovative
+6. Pass the "human vs robot" validation check
 
 Return ONLY a JSON array with 3 objects, each with this structure:
 [
