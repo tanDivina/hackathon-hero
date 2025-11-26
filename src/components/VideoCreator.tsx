@@ -105,7 +105,7 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
 
       const selfieSegmentation = new SelfieSegmentation({
         locateFile: (file) => {
-          return `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/${file}`;
+          return `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation@0.1.1675465747/${file}`;
         },
       });
 
@@ -122,8 +122,8 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
           setModelLoading(false);
         })
         .catch((err) => {
-          console.error("AI Model Load Failed:", err);
-          alert("Failed to load background AI. Check internet connection.");
+          console.error("AI Model Failed:", err);
+          alert("Failed to load AI background. Please disable ad-blockers or check connection.");
           setEnableAI(false);
           setModelLoading(false);
         });
@@ -245,9 +245,11 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
 
       if (enableAI && selfieSegmentationRef.current && !modelLoading) {
          try {
-           await selfieSegmentationRef.current.send({ image: videoRef.current });
+           if (videoRef.current.readyState >= 2) {
+             await selfieSegmentationRef.current.send({ image: videoRef.current });
+           }
          } catch (err) {
-           console.warn('AI processing skipped frame:', err);
+           console.warn('AI processing skipped:', err);
            drawStandardFrame();
          }
       } else {
@@ -273,7 +275,7 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
     const video = videoRef.current;
-    if (!canvas || !ctx || !video) return;
+    if (!canvas || !ctx || !video || video.readyState < 2) return;
 
     canvas.width = video.videoWidth || 1920;
     canvas.height = video.videoHeight || 1080;
@@ -297,19 +299,21 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
     canvas.height = results.image.height;
 
     ctx.save();
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
     ctx.translate(canvas.width, 0);
     ctx.scale(-1, 1);
 
-    // 1. Draw User (Person)
+    // 1. Draw Person (Filtered)
     applyFilters(ctx);
     ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
 
-    // 2. Apply Mask (Keep only the Person)
+    // 2. Cut out person using mask (destination-in = keep overlaps)
     ctx.globalCompositeOperation = 'destination-in';
     ctx.filter = 'none';
     ctx.drawImage(results.segmentationMask, 0, 0, canvas.width, canvas.height);
 
-    // 3. Draw Background (Behind Person)
+    // 3. Draw Background Behind (destination-over = draw behind)
     ctx.globalCompositeOperation = 'destination-over';
 
     if (bgMode === 'blur') {
@@ -326,9 +330,9 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
         ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
     }
 
+    // 4. Restore to normal for Logo
     ctx.restore();
-
-    // 4. Draw Logo (Always on top)
+    ctx.globalCompositeOperation = 'source-over';
     drawLogo(ctx, canvas.width, canvas.height);
   };
 
@@ -343,7 +347,6 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
         else if (position === 'bottom-left') { x = 40; y = h - size - 40; }
         else if (position === 'center') { x = (w - size) / 2; y = (h - size) / 2; }
 
-        ctx.globalCompositeOperation = 'source-over';
         ctx.filter = 'none';
         ctx.drawImage(logoImageRef.current, x, y, size, size);
     }
