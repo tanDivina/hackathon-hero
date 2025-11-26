@@ -2,12 +2,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   Film, Music, Video, Sparkles, Cpu, Image as ImageIcon,
   Mic, Palette, Wand2, Download,
-  Play, Pause, Type, MoveVertical, FlipHorizontal, Maximize2, X
+  Play, Pause, Type, MoveVertical, FlipHorizontal, Maximize2, X,
+  AlertTriangle
 } from 'lucide-react';
 import { CyberCard } from './CyberCard';
 import { databaseService } from '../services/database';
 import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { fetchFile, toBlobURL } from '@ffmpeg/util';
+import { SelfieSegmentation } from '@mediapipe/selfie_segmentation';
 
 interface VideoCreatorProps {
   isPro: boolean;
@@ -25,12 +27,13 @@ interface VideoCreatorProps {
 }
 
 export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, onUpgradeClick, pitchScript }) => {
+  // --- STATE ---
   const [isExpanded, setIsExpanded] = useState(false);
 
   const [logoFile, setLogoFile] = useState<string>('');
   const [audioFile, setAudioFile] = useState<string>('');
   const [logoPosition, setLogoPosition] = useState<string>('top-right');
-  const [logoSize, setLogoSize] = useState<number>(200);
+  const [logoSize, setLogoSize] = useState<number>(150);
   const [audioVolume, setAudioVolume] = useState<number>(0.3);
 
   const [isRecording, setIsRecording] = useState(false);
@@ -40,17 +43,21 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
   const [isConverting, setIsConverting] = useState(false);
   const [conversionProgress, setConversionProgress] = useState<number>(0);
 
-  const [scrollSpeed, setScrollSpeed] = useState<number>(1.5);
-  const [fontSize, setFontSize] = useState<number>(48);
+  // Teleprompter
+  const [scrollSpeed, setScrollSpeed] = useState<number>(2);
+  const [fontSize, setFontSize] = useState<number>(42);
   const [isMirrored, setIsMirrored] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
 
+  // Effects (AI)
   const [enableAI, setEnableAI] = useState(false);
+  const [modelLoading, setModelLoading] = useState(false);
   const [bgMode, setBgMode] = useState<'blur' | 'image'>('blur');
   const [virtualBgImage, setVirtualBgImage] = useState<HTMLImageElement | null>(null);
   const [videoFilter, setVideoFilter] = useState<'none' | 'cinematic' | 'noir' | 'warm'>('none');
   const [isGeneratingLogo, setIsGeneratingLogo] = useState(false);
 
+  // Refs
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -58,54 +65,68 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
   const teleprompterRef = useRef<HTMLDivElement>(null);
   const logoImageRef = useRef<HTMLImageElement | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
+  const audioVisualizerCanvasRef = useRef<HTMLCanvasElement>(null);
+
+  // AI Refs
+  const selfieSegmentationRef = useRef<SelfieSegmentation | null>(null);
+
+  // Animation Refs
   const animationFrameRef = useRef<number | null>(null);
   const scrollFrameRef = useRef<number | null>(null);
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const startTimeRef = useRef<number>(0);
   const bgAudioElementRef = useRef<HTMLAudioElement | null>(null);
+  const scrollAccumulatorRef = useRef<number>(0);
 
+  // --- LIFECYCLE ---
   useEffect(() => {
     if (projectId) loadSavedAssets();
     return () => cleanupResources();
   }, [projectId]);
 
+  // Load AI Model when enabled
+  useEffect(() => {
+    if (enableAI && !selfieSegmentationRef.current) {
+      setModelLoading(true);
+      const selfieSegmentation = new SelfieSegmentation({
+        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/${file}`,
+      });
+      selfieSegmentation.setOptions({ modelSelection: 1, selfieMode: false });
+      selfieSegmentation.onResults(onAIResults);
+      selfieSegmentationRef.current = selfieSegmentation;
+      // Tiny delay to let it load
+      setTimeout(() => setModelLoading(false), 1000);
+    }
+  }, [enableAI]);
+
+  // Redraw loop
   useEffect(() => {
     if (isExpanded) {
       startCamera();
-      const loop = () => {
-        drawFrame();
-        animationFrameRef.current = requestAnimationFrame(loop);
-      };
-      loop();
+      // We start the loop, but the specific logic (AI vs Standard) is handled inside startRenderingLoop
+      startRenderingLoop();
     } else {
       cleanupResources();
     }
-  }, [isExpanded, videoFilter, enableAI, bgMode, logoPosition, logoSize]);
+    // We intentionally don't put startRenderingLoop in the dependency array to avoid double-firing
+  }, [isExpanded]);
 
+  // Scroll Loop
   useEffect(() => {
     if (!isRecording) {
-      if (scrollFrameRef.current) {
-        cancelAnimationFrame(scrollFrameRef.current);
-        scrollFrameRef.current = null;
-      }
-      return;
+        if (scrollFrameRef.current) cancelAnimationFrame(scrollFrameRef.current);
+        return;
     }
-
     const scrollLoop = () => {
       if (isRecording && !isPaused && teleprompterRef.current) {
-        teleprompterRef.current.scrollTop += (scrollSpeed * 0.15);
+        // Accumulate float values to handle slow speeds smoothly
+        scrollAccumulatorRef.current += (scrollSpeed * 0.3);
+        teleprompterRef.current.scrollTop = scrollAccumulatorRef.current;
       }
       scrollFrameRef.current = requestAnimationFrame(scrollLoop);
     };
-
     scrollFrameRef.current = requestAnimationFrame(scrollLoop);
-
-    return () => {
-      if (scrollFrameRef.current) {
-        cancelAnimationFrame(scrollFrameRef.current);
-        scrollFrameRef.current = null;
-      }
-    };
+    return () => { if (scrollFrameRef.current) cancelAnimationFrame(scrollFrameRef.current); };
   }, [isRecording, isPaused, scrollSpeed]);
 
   const cleanupResources = () => {
@@ -116,6 +137,7 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
     if (scrollFrameRef.current) cancelAnimationFrame(scrollFrameRef.current);
     if (audioContextRef.current) audioContextRef.current.close();
     if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    if (selfieSegmentationRef.current) selfieSegmentationRef.current.close();
   };
 
   const loadSavedAssets = async () => {
@@ -136,6 +158,7 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
     }
   };
 
+  // --- CAMERA & AUDIO ---
   const startCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -149,7 +172,7 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
       setupAudioContext(stream);
     } catch (e) {
       console.error("Camera Error:", e);
-      alert("Camera access denied. Please check permissions.");
+      alert("Camera access denied.");
     }
   };
 
@@ -172,50 +195,111 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
     return dest.stream.getAudioTracks();
   };
 
-  const drawFrame = () => {
-    const canvas = canvasRef.current;
-    const video = videoRef.current;
-    if (!canvas || !video || video.readyState < 2) return;
+  // --- RENDER LOGIC ---
+  const startRenderingLoop = () => {
+    const loop = async () => {
+      if (!videoRef.current || videoRef.current.paused || videoRef.current.ended) {
+        animationFrameRef.current = requestAnimationFrame(loop);
+        return;
+      }
 
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+      // DECISION: AI Processing or Standard Draw?
+      if (enableAI && selfieSegmentationRef.current) {
+         await selfieSegmentationRef.current.send({ image: videoRef.current });
+         // onAIResults will be called by the library to draw the frame
+      } else {
+         drawStandardFrame();
+      }
+
+      animationFrameRef.current = requestAnimationFrame(loop);
+    };
+    loop();
+  };
+
+  const applyFilters = (ctx: CanvasRenderingContext2D) => {
+    switch (videoFilter) {
+      case 'cinematic': ctx.filter = 'contrast(1.1) saturate(1.2) brightness(0.95)'; break;
+      case 'noir': ctx.filter = 'grayscale(1) contrast(1.2) brightness(0.9)'; break;
+      case 'warm': ctx.filter = 'sepia(0.2) contrast(1.05) saturate(1.1)'; break;
+      default: ctx.filter = 'none';
+    }
+  };
+
+  // Standard Mode (Fast, Low CPU)
+  const drawStandardFrame = () => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    const video = videoRef.current;
+    if (!canvas || !ctx || !video) return;
 
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
 
     ctx.save();
+    ctx.translate(canvas.width, 0);
+    ctx.scale(-1, 1);
+    applyFilters(ctx);
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    ctx.restore();
 
+    drawLogo(ctx, canvas.width, canvas.height);
+  };
+
+  // AI Mode (Heavy, Green Screen)
+  const onAIResults = (results: any) => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (!canvas || !ctx) return;
+
+    canvas.width = results.image.width;
+    canvas.height = results.image.height;
+
+    ctx.save();
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // 1. Draw Background
     ctx.translate(canvas.width, 0);
     ctx.scale(-1, 1);
 
-    if (enableAI && bgMode === 'image' && virtualBgImage) {
-        const scale = Math.max(canvas.width / virtualBgImage.width, canvas.height / virtualBgImage.height);
-        const x = (canvas.width / 2) - (virtualBgImage.width / 2) * scale;
-        const y = (canvas.height / 2) - (virtualBgImage.height / 2) * scale;
-        ctx.drawImage(virtualBgImage, x, y, virtualBgImage.width * scale, virtualBgImage.height * scale);
+    if (bgMode === 'blur') {
+      ctx.filter = 'blur(15px)';
+      ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+      ctx.filter = 'none';
+    } else if (bgMode === 'image' && virtualBgImage) {
+      const scale = Math.max(canvas.width / virtualBgImage.width, canvas.height / virtualBgImage.height);
+      const x = (canvas.width / 2) - (virtualBgImage.width / 2) * scale;
+      const y = (canvas.height / 2) - (virtualBgImage.height / 2) * scale;
+      ctx.drawImage(virtualBgImage, x, y, virtualBgImage.width * scale, virtualBgImage.height * scale);
     } else {
-        switch (videoFilter) {
-            case 'cinematic': ctx.filter = 'contrast(1.1) saturate(1.2)'; break;
-            case 'noir': ctx.filter = 'grayscale(1) contrast(1.2)'; break;
-            case 'warm': ctx.filter = 'sepia(0.2)'; break;
-            default: ctx.filter = 'none';
-        }
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height); // Fallback to original
     }
 
-    ctx.restore();
+    // 2. Cut out Human
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.drawImage(results.segmentationMask, 0, 0, canvas.width, canvas.height);
 
+    // 3. Draw Human Back On Top
+    ctx.globalCompositeOperation = 'destination-over';
+    applyFilters(ctx);
+    ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+
+    ctx.restore();
+    drawLogo(ctx, canvas.width, canvas.height);
+  };
+
+  const drawLogo = (ctx: CanvasRenderingContext2D, w: number, h: number) => {
     if (logoImageRef.current && logoImageRef.current.complete) {
         const size = logoSize;
         let x = 20, y = 20;
-        if (logoPosition.includes('right')) x = canvas.width - size - 50;
-        if (logoPosition.includes('center')) x = (canvas.width - size) / 2;
-        if (logoPosition.includes('bottom')) y = canvas.height - size - 50;
-        if (logoPosition === 'center') y = (canvas.height - size) / 2;
+        if (logoPosition.includes('right')) x = w - size - 40;
+        if (logoPosition.includes('center')) x = (w - size) / 2;
+        if (logoPosition.includes('bottom')) y = h - size - 40;
+        if (logoPosition === 'center') y = (h - size) / 2;
         ctx.drawImage(logoImageRef.current, x, y, size, size);
     }
   };
 
+  // --- LOGO GEN ---
   const handleGenerateLogo = async () => {
     if (!pitchScript?.problem) return alert("Script required!");
     setIsGeneratingLogo(true);
@@ -245,10 +329,12 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
     }
   };
 
+  // --- RECORDING ---
   const startRecording = () => {
-    if (teleprompterRef.current) {
-      teleprompterRef.current.scrollTop = 0;
-    }
+    // Reset
+    if (teleprompterRef.current) teleprompterRef.current.scrollTop = 0;
+    scrollAccumulatorRef.current = 0;
+
     setCountdown(3);
     const interval = setInterval(() => {
         setCountdown(prev => {
@@ -266,7 +352,7 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
     if (!canvasRef.current || !videoRef.current) return;
 
     const stream = videoRef.current.srcObject as MediaStream;
-    const mixedTracks = stream.getAudioTracks();
+    const mixedTracks = stream.getAudioTracks(); // Simple fallback
 
     const canvasStream = canvasRef.current.captureStream(30);
     mixedTracks.forEach(t => canvasStream.addTrack(t));
@@ -329,7 +415,7 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
             await ffmpeg.deleteFile('output.mp4');
         } catch (e) {
             console.error(e);
-            alert("MP4 conversion failed (security/browser limitation). Downloading WebM.");
+            alert("MP4 conversion unavailable (Security Context). Downloading WebM.");
             download(blob, 'webm');
         } finally {
             setIsConverting(false);
@@ -371,213 +457,224 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
     >
       <audio ref={bgAudioElementRef} src={audioFile} loop crossOrigin="anonymous" />
 
-      {!isPro ? (
-        <div className="text-center py-8">
-           <p className="text-gray-400 mb-4">Upgrade to access the Video Creator Studio.</p>
-           <button onClick={onUpgradeClick} className="bg-accent-yellow text-black px-6 py-2 font-bold hover:bg-white">UPGRADE TO PRO</button>
+      {/* Mini View */}
+      {!isExpanded && (
+        <div className="text-center py-12 border border-dashed border-gray-800 rounded-lg">
+           <Film size={48} className="mx-auto text-gray-700 mb-4" />
+           <h3 className="text-xl font-bold text-white mb-2">Ready to Record?</h3>
+           <button
+             onClick={() => setIsExpanded(true)}
+             className="bg-accent-yellow text-black px-8 py-4 rounded-full font-bold text-lg hover:bg-white transition-all flex items-center justify-center gap-2 mx-auto"
+           >
+             <Maximize2 size={20} /> OPEN STUDIO MODE
+           </button>
         </div>
-      ) : (
-        <>
-          {!isExpanded && (
-            <div className="text-center py-12 border border-dashed border-gray-800 rounded-lg">
-               <Film size={48} className="mx-auto text-gray-700 mb-4" />
-               <h3 className="text-xl font-bold text-white mb-2">Ready to Record?</h3>
-               <p className="text-gray-400 mb-6 max-w-md mx-auto">Open the full-screen studio to access the teleprompter, AI background, and recording tools.</p>
-               <button
-                 onClick={() => setIsExpanded(true)}
-                 className="bg-accent-yellow text-black px-8 py-4 rounded-full font-bold text-lg hover:bg-white transition-all flex items-center justify-center gap-2 mx-auto"
-               >
-                 <Maximize2 size={20} /> OPEN STUDIO MODE
-               </button>
-            </div>
-          )}
+      )}
 
-          {isExpanded && (
-            <div className="fixed inset-0 z-50 bg-black flex flex-col animate-in fade-in duration-300">
+      {/* FULL SCREEN STUDIO */}
+      {isExpanded && (
+        <div className="fixed inset-0 z-50 bg-black flex flex-col animate-in fade-in duration-300">
 
-               <div className="h-16 border-b border-gray-800 bg-gray-900/50 flex items-center justify-between px-6 backdrop-blur">
-                  <div className="flex items-center gap-4">
-                     <div className="flex items-center gap-2 text-accent-yellow font-bold">
-                        <Film size={20} /> STUDIO
-                     </div>
-                     {isRecording && (
-                       <div className="flex items-center gap-2 bg-red-900/50 px-3 py-1 rounded text-red-500 font-mono text-sm border border-red-900">
-                          <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                          REC {Math.floor(timeLeftDisplay/60)}:{(timeLeftDisplay%60).toString().padStart(2,'0')}
-                       </div>
-                     )}
-                  </div>
+           {/* Header */}
+           <div className="h-16 border-b border-gray-800 bg-gray-900/50 flex items-center justify-between px-6 backdrop-blur">
+              <div className="flex items-center gap-4">
+                 <div className="flex items-center gap-2 text-accent-yellow font-bold">
+                    <Film size={20} /> STUDIO
+                 </div>
+                 {isRecording && (
+                   <div className="flex items-center gap-2 bg-red-900/50 px-3 py-1 rounded text-red-500 font-mono text-sm border border-red-900">
+                      <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                      REC {Math.floor(timeLeftDisplay/60)}:{(timeLeftDisplay%60).toString().padStart(2,'0')}
+                   </div>
+                 )}
+              </div>
 
-                  <div className="flex items-center gap-4">
-                     <div className="flex items-center gap-2 bg-black px-3 py-1 rounded border border-gray-800">
-                        <span className="text-xs text-gray-500 font-mono">SPEED</span>
-                        <input type="range" min="0.5" max="5" step="0.5" value={scrollSpeed} onChange={e=>setScrollSpeed(Number(e.target.value))} className="w-24 accent-accent-yellow h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer"/>
-                        <span className="text-xs text-white w-6 text-right">{scrollSpeed}x</span>
-                     </div>
-                     <div className="flex items-center gap-2 bg-black px-3 py-1 rounded border border-gray-800">
-                        <span className="text-xs text-gray-500 font-mono">TEXT</span>
-                        <input type="range" min="20" max="80" value={fontSize} onChange={e=>setFontSize(Number(e.target.value))} className="w-16 accent-accent-yellow h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer"/>
-                     </div>
-                     <button onClick={()=>setIsExpanded(false)} className="bg-gray-800 hover:bg-gray-700 text-white p-2 rounded-full transition-colors">
-                        <X size={20}/>
-                     </button>
-                  </div>
-               </div>
+              <div className="flex items-center gap-4">
+                 <div className="flex items-center gap-2 bg-black px-3 py-1 rounded border border-gray-800">
+                    <span className="text-xs text-gray-500 font-mono">SPEED</span>
+                    <input type="range" min="0.5" max="5" step="0.5" value={scrollSpeed} onChange={e=>setScrollSpeed(Number(e.target.value))} className="w-24 accent-accent-yellow h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer"/>
+                    <span className="text-xs text-white w-6 text-right">{scrollSpeed}x</span>
+                 </div>
+                 <div className="flex items-center gap-2 bg-black px-3 py-1 rounded border border-gray-800">
+                    <span className="text-xs text-gray-500 font-mono">TEXT</span>
+                    <input type="range" min="20" max="80" value={fontSize} onChange={e=>setFontSize(Number(e.target.value))} className="w-16 accent-accent-yellow h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer"/>
+                 </div>
+                 <button onClick={()=>setIsExpanded(false)} className="bg-gray-800 hover:bg-gray-700 text-white p-2 rounded-full transition-colors">
+                    <X size={20}/>
+                 </button>
+              </div>
+           </div>
 
-               <div className="flex-1 relative overflow-hidden flex">
+           {/* MAIN WORKSPACE */}
+           <div className="flex-1 relative overflow-hidden flex">
 
-                  <div className="w-72 bg-black border-r border-gray-800 p-4 space-y-6 overflow-y-auto hidden md:block z-20">
-                     <div className="space-y-3">
-                        <label className="text-xs text-accent-yellow font-mono font-bold flex items-center gap-2"><Sparkles size={12}/> BRANDING</label>
-                        <button
-                          onClick={handleGenerateLogo}
-                          disabled={isGeneratingLogo}
-                          className="w-full bg-gradient-to-r from-blue-900 to-purple-900 border border-blue-800 text-white text-xs py-3 rounded font-bold hover:brightness-110 transition-colors flex items-center justify-center gap-2"
-                        >
-                           {isGeneratingLogo ? <Sparkles className="animate-spin" size={14}/> : <Wand2 size={14}/>}
-                           {isGeneratingLogo ? "GENERATING..." : "GENERATE LOGO"}
-                        </button>
+              {/* SIDEBAR */}
+              <div className="w-72 bg-black border-r border-gray-800 p-4 space-y-6 overflow-y-auto hidden md:block z-20">
 
-                        <div className="flex items-center gap-2">
-                             <div className="h-px bg-gray-800 flex-1"></div>
-                             <span className="text-[10px] text-gray-600">OR</span>
-                             <div className="h-px bg-gray-800 flex-1"></div>
-                        </div>
+                 {/* Logo Tool */}
+                 <div className="space-y-3">
+                    <label className="text-xs text-accent-yellow font-mono font-bold flex items-center gap-2"><Sparkles size={12}/> BRANDING</label>
+                    <button
+                      onClick={handleGenerateLogo}
+                      disabled={isGeneratingLogo}
+                      className="w-full bg-gradient-to-r from-blue-900 to-purple-900 border border-blue-800 text-white text-xs py-3 rounded font-bold hover:brightness-110 transition-colors flex items-center justify-center gap-2"
+                    >
+                       {isGeneratingLogo ? <Sparkles className="animate-spin" size={14}/> : <Wand2 size={14}/>}
+                       {isGeneratingLogo ? "GENERATING..." : "GENERATE LOGO"}
+                    </button>
 
-                        <input type="file" onChange={e=>{
-                            const r = new FileReader(); r.onload=ev=>{
-                               setLogoFile(ev.target?.result as string);
-                               const i = new Image(); i.src = ev.target?.result as string; i.onload=()=>logoImageRef.current=i;
-                            };
-                            if(e.target.files?.[0]) r.readAsDataURL(e.target.files[0]);
-                        }} className="text-xs text-gray-500 w-full file:bg-gray-800 file:text-white file:border-0 file:rounded file:px-2 file:text-xs"/>
+                    <div className="flex items-center gap-2">
+                         <div className="h-px bg-gray-800 flex-1"></div>
+                         <span className="text-[10px] text-gray-600">OR</span>
+                         <div className="h-px bg-gray-800 flex-1"></div>
+                    </div>
 
-                        {logoFile && (
-                            <div className="bg-gray-900 p-3 rounded space-y-2">
-                                <div className="flex justify-between text-[10px] text-gray-400">
-                                    <span>SIZE</span>
-                                    <span>{logoSize}px</span>
-                                </div>
-                                <input
-                                    type="range"
-                                    min="50"
-                                    max="400"
-                                    value={logoSize}
-                                    onChange={(e) => setLogoSize(Number(e.target.value))}
-                                    className="w-full accent-accent-yellow h-1 bg-gray-700 rounded-lg appearance-none"
-                                />
-                                <div className="flex justify-between text-[10px] text-gray-400 mt-2">
-                                    <span>POSITION</span>
-                                </div>
-                                <select
-                                    value={logoPosition}
-                                    onChange={(e) => setLogoPosition(e.target.value)}
-                                    className="w-full bg-black text-xs text-white border border-gray-700 rounded p-1"
-                                >
-                                    <option value="top-right">Top Right</option>
-                                    <option value="top-left">Top Left</option>
-                                    <option value="bottom-right">Bottom Right</option>
-                                    <option value="bottom-left">Bottom Left</option>
-                                </select>
+                    <input type="file" onChange={e=>{
+                        const r = new FileReader(); r.onload=ev=>{
+                           setLogoFile(ev.target?.result as string);
+                           const i = new Image(); i.src = ev.target?.result as string; i.onload=()=>logoImageRef.current=i;
+                        };
+                        if(e.target.files?.[0]) r.readAsDataURL(e.target.files[0]);
+                    }} className="text-xs text-gray-500 w-full file:bg-gray-800 file:text-white file:border-0 file:rounded file:px-2 file:text-xs"/>
+
+                    {logoFile && (
+                        <div className="bg-gray-900 p-3 rounded space-y-2">
+                            <div className="flex justify-between text-[10px] text-gray-400">
+                                <span>SIZE</span>
+                                <span>{logoSize}px</span>
                             </div>
-                        )}
-                     </div>
-
-                     <div className="h-px bg-gray-800" />
-
-                     <div className="space-y-2">
-                        <label className="text-xs text-gray-500 font-mono flex items-center gap-2"><Palette size={12}/> FILTERS</label>
-                        <div className="grid grid-cols-2 gap-2">
-                           {['none','cinematic','noir','warm'].map(f=>(
-                              <button key={f} onClick={()=>setVideoFilter(f as any)} className={`text-[10px] uppercase p-2 border rounded ${videoFilter===f?'border-accent-yellow text-accent-yellow bg-accent-yellow/10':'border-gray-800 text-gray-500 hover:bg-gray-900'}`}>{f}</button>
-                           ))}
+                            <input
+                                type="range" min="50" max="400"
+                                value={logoSize} onChange={(e) => setLogoSize(Number(e.target.value))}
+                                className="w-full accent-accent-yellow h-1 bg-gray-700 rounded-lg appearance-none"
+                            />
+                            <select
+                                value={logoPosition} onChange={(e) => setLogoPosition(e.target.value)}
+                                className="w-full bg-black text-xs text-white border border-gray-700 rounded p-1"
+                            >
+                                <option value="top-right">Top Right</option>
+                                <option value="top-left">Top Left</option>
+                                <option value="bottom-right">Bottom Right</option>
+                                <option value="bottom-left">Bottom Left</option>
+                            </select>
                         </div>
-                     </div>
+                    )}
+                 </div>
 
-                     <div className="space-y-2">
-                        <label className="text-xs text-gray-500 font-mono">EXPORT</label>
-                        <div className="flex gap-2">
-                           <button onClick={()=>setOutputFormat('webm')} className={`flex-1 text-[10px] font-bold border rounded py-2 ${outputFormat==='webm'?'border-accent-yellow text-accent-yellow bg-accent-yellow/10':'border-gray-800 text-gray-400 hover:bg-gray-900'}`}>WEBM</button>
-                           <button onClick={()=>setOutputFormat('mp4')} className={`flex-1 text-[10px] font-bold border rounded py-2 ${outputFormat==='mp4'?'border-accent-yellow text-accent-yellow bg-accent-yellow/10':'border-gray-800 text-gray-400 hover:bg-gray-900'}`}>MP4</button>
-                        </div>
-                     </div>
-                  </div>
+                 <div className="h-px bg-gray-800" />
 
-                  <div className="flex-1 relative bg-black flex items-center justify-center">
-                     <canvas ref={canvasRef} className="max-w-full max-h-full aspect-video shadow-2xl bg-gray-900" />
+                 {/* AI Background (Restored) */}
+                 <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                       <label className="text-xs text-gray-500 font-mono flex items-center gap-2"><Cpu size={12}/> AI BACKDROP</label>
+                       <button onClick={()=>setEnableAI(!enableAI)} className={`w-8 h-4 rounded-full transition-colors relative ${enableAI ? 'bg-accent-yellow' : 'bg-gray-700'}`}>
+                          <div className={`absolute top-0.5 left-0.5 bg-black w-3 h-3 rounded-full transition-transform ${enableAI ? 'translate-x-4' : ''}`}/>
+                       </button>
+                    </div>
 
-                     <video ref={videoRef} className="hidden" playsInline muted autoPlay />
+                    {enableAI && (
+                       <div className="grid grid-cols-2 gap-2">
+                          <button onClick={()=>setBgMode('blur')} className={`text-[10px] uppercase p-2 border rounded ${bgMode==='blur'?'border-accent-yellow text-accent-yellow bg-accent-yellow/10':'border-gray-800 text-gray-500'}`}>Blur</button>
+                          <label className={`text-[10px] uppercase p-2 border rounded text-center cursor-pointer ${bgMode==='image'?'border-accent-yellow text-accent-yellow bg-accent-yellow/10':'border-gray-800 text-gray-500'}`}>
+                             Image
+                             <input type="file" accept="image/*" className="hidden" onChange={e=>{
+                                const f = e.target.files?.[0];
+                                if(f) { const i = new Image(); i.src=URL.createObjectURL(f); i.onload=()=>setVirtualBgImage(i); setBgMode('image'); }
+                             }}/>
+                          </label>
+                       </div>
+                    )}
+                    {modelLoading && <div className="text-[9px] text-accent-yellow animate-pulse">Loading Model...</div>}
+                 </div>
 
-                     <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center max-w-[80%] mx-auto">
-                        <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-black via-black/50 to-transparent z-10" />
-                        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black via-black/50 to-transparent z-10" />
+                 <div className="h-px bg-gray-800" />
 
-                        <div
-                          ref={teleprompterRef}
-                          className="w-full h-full overflow-y-auto no-scrollbar text-center relative"
-                          style={{
-                              transform: isMirrored ? 'scaleX(-1)' : 'none',
-                              scrollBehavior: 'auto'
-                          }}
-                        >
-                           <div style={{ paddingTop: '40vh', paddingBottom: '50vh' }}>
-                              {sections.map((section, idx) => (
-                                 <div key={idx} className="mb-32">
-                                    <h3 className="text-accent-yellow text-sm font-mono mb-2 uppercase tracking-widest">{section.title}</h3>
-                                    <p
-                                      className="font-bold text-white leading-relaxed drop-shadow-[0_4px_4px_rgba(0,0,0,1)] px-6 py-4 bg-black/40 rounded-xl backdrop-blur-[2px] inline-block"
-                                      style={{ fontSize: `${fontSize}px` }}
-                                    >
-                                       {section.text}
-                                    </p>
-                                 </div>
-                              ))}
-                           </div>
-                        </div>
+                 {/* Filters */}
+                 <div className="space-y-2">
+                    <label className="text-xs text-gray-500 font-mono flex items-center gap-2"><Palette size={12}/> FILTERS</label>
+                    <div className="grid grid-cols-2 gap-2">
+                       {['none','cinematic','noir','warm'].map(f=>(
+                          <button key={f} onClick={()=>setVideoFilter(f as any)} className={`text-[10px] uppercase p-2 border rounded ${videoFilter===f?'border-accent-yellow text-accent-yellow bg-accent-yellow/10':'border-gray-800 text-gray-500 hover:bg-gray-900'}`}>{f}</button>
+                       ))}
+                    </div>
+                 </div>
+              </div>
 
-                        <div className="absolute top-[35%] w-full border-t border-red-500/50 border-dashed flex justify-end opacity-70">
-                           <span className="text-[10px] text-red-500 bg-black/80 px-1 rounded">EYE LEVEL</span>
-                        </div>
-                     </div>
+              {/* VIDEO AREA */}
+              <div className="flex-1 relative bg-black flex items-center justify-center">
+                 <canvas ref={canvasRef} className="max-w-full max-h-full aspect-video shadow-2xl bg-gray-900" />
+                 <video ref={videoRef} className="hidden" playsInline muted autoPlay />
 
-                     {countdown !== null && (
-                        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80">
-                           <div className="text-9xl font-black text-accent-yellow animate-bounce">{countdown}</div>
-                        </div>
-                     )}
+                 {/* TELEPROMPTER OVERLAY */}
+                 <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center max-w-[80%] mx-auto">
+                    <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-black via-black/50 to-transparent z-10" />
+                    <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black via-black/50 to-transparent z-10" />
 
-                     {isConverting && (
-                        <div className="absolute inset-0 z-50 bg-black/90 flex flex-col items-center justify-center gap-4">
-                           <Download className="text-accent-yellow animate-bounce" size={48} />
-                           <div className="text-xl font-bold text-white">Finalizing Video...</div>
-                           <div className="w-64 h-2 bg-gray-800 rounded-full"><div className="h-full bg-accent-yellow transition-all duration-300" style={{width: `${conversionProgress}%`}}/></div>
-                        </div>
-                     )}
-                  </div>
-               </div>
+                    <div
+                      ref={teleprompterRef}
+                      className="w-full h-full overflow-y-auto no-scrollbar text-center relative z-30"
+                      style={{
+                          transform: isMirrored ? 'scaleX(-1)' : 'none',
+                          scrollBehavior: 'auto'
+                      }}
+                    >
+                       <div style={{ paddingTop: '40vh', paddingBottom: '50vh' }}>
+                          {sections.map((section, idx) => (
+                             <div key={idx} className="mb-32">
+                                <h3 className="text-accent-yellow text-sm font-mono mb-2 uppercase tracking-widest">{section.title}</h3>
+                                <p
+                                  className="font-bold text-white leading-relaxed drop-shadow-[0_4px_4px_rgba(0,0,0,1)] px-6 py-4 bg-black/40 rounded-xl backdrop-blur-[2px] inline-block"
+                                  style={{ fontSize: `${fontSize}px` }}
+                                >
+                                   {section.text}
+                                </p>
+                             </div>
+                          ))}
+                       </div>
+                    </div>
 
-               <div className="h-24 bg-black border-t border-gray-800 flex items-center justify-center gap-6">
-                  {!isRecording ? (
-                     <button
-                       onClick={startRecording}
-                       className="bg-accent-yellow hover:bg-white text-black px-16 py-4 rounded-full font-bold text-xl shadow-[0_0_20px_rgba(250,204,21,0.3)] transition-all transform hover:scale-105 flex items-center gap-3"
-                     >
-                        <div className="w-5 h-5 bg-red-600 rounded-full animate-pulse" /> START RECORDING
-                     </button>
-                  ) : (
-                     <div className="flex items-center gap-4">
-                        <button onClick={()=>setIsPaused(!isPaused)} className="bg-gray-800 text-white w-14 h-14 rounded-full hover:bg-gray-700 flex items-center justify-center border border-gray-700">
-                           {isPaused ? <Play size={28} fill="white"/> : <Pause size={28} fill="white"/>}
-                        </button>
-                        <button onClick={stopRecording} className="bg-red-600 text-white px-12 py-4 rounded-full font-bold text-lg hover:bg-red-700 shadow-lg flex items-center gap-2">
-                           <div className="w-4 h-4 bg-white rounded-sm" /> STOP & SAVE
-                        </button>
-                     </div>
-                  )}
-               </div>
-            </div>
-          )}
-        </>
+                    <div className="absolute top-[35%] w-full border-t border-red-500/50 border-dashed flex justify-end opacity-70 z-20">
+                       <span className="text-[10px] text-red-500 bg-black/80 px-1 rounded">EYE LEVEL</span>
+                    </div>
+                 </div>
+
+                 {countdown !== null && (
+                    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80">
+                       <div className="text-9xl font-black text-accent-yellow animate-bounce">{countdown}</div>
+                    </div>
+                 )}
+
+                 {isConverting && (
+                    <div className="absolute inset-0 z-50 bg-black/90 flex flex-col items-center justify-center gap-4">
+                       <Download className="text-accent-yellow animate-bounce" size={48} />
+                       <div className="text-xl font-bold text-white">Finalizing Video...</div>
+                       <div className="w-64 h-2 bg-gray-800 rounded-full"><div className="h-full bg-accent-yellow transition-all duration-300" style={{width: `${conversionProgress}%`}}/></div>
+                    </div>
+                 )}
+              </div>
+           </div>
+
+           {/* FOOTER CONTROLS */}
+           <div className="h-24 bg-black border-t border-gray-800 flex items-center justify-center gap-6">
+              {!isRecording ? (
+                 <button
+                   onClick={startRecording}
+                   className="bg-accent-yellow hover:bg-white text-black px-16 py-4 rounded-full font-bold text-xl shadow-[0_0_20px_rgba(250,204,21,0.3)] transition-all transform hover:scale-105 flex items-center gap-3"
+                 >
+                    <div className="w-5 h-5 bg-red-600 rounded-full animate-pulse" /> START RECORDING
+                 </button>
+              ) : (
+                 <div className="flex items-center gap-4">
+                    <button onClick={()=>setIsPaused(!isPaused)} className="bg-gray-800 text-white w-14 h-14 rounded-full hover:bg-gray-700 flex items-center justify-center border border-gray-700">
+                       {isPaused ? <Play size={28} fill="white"/> : <Pause size={28} fill="white"/>}
+                    </button>
+                    <button onClick={stopRecording} className="bg-red-600 text-white px-12 py-4 rounded-full font-bold text-lg hover:bg-red-700 shadow-lg flex items-center gap-2">
+                       <div className="w-4 h-4 bg-white rounded-sm" /> STOP & SAVE
+                    </button>
+                 </div>
+              )}
+           </div>
+        </div>
       )}
     </CyberCard>
   );
