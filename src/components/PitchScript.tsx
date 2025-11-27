@@ -25,7 +25,18 @@ interface PitchScriptProps {
   projectId?: string;
   reloadKey?: number;
   onShowProModal?: () => void;
-  onScriptSaved?: () => void;
+  onScriptSaved?: (scriptData: {
+    problem: string;
+    solution: string;
+    traction: string;
+    script_type: 'pitch' | 'demo' | 'intro';
+    demo_requirements: string;
+    demo_tools: string;
+    demo_realworld_use: string;
+    intro_who: string;
+    intro_what: string;
+    intro_why: string;
+  }) => void;
 }
 
 type SectionKey = 'problem' | 'solution' | 'traction' | 'requirements' | 'tools' | 'realworld_use' | 'who' | 'what' | 'why';
@@ -231,30 +242,33 @@ export const PitchScript: React.FC<PitchScriptProps> = ({ onGenerate, isPro, pro
     setEditingSection(null);
     setEditedContent('');
 
+    // Prepare script data for parent
+    const scriptData = {
+      problem: updatedScript.problem || '',
+      solution: updatedScript.solution || '',
+      traction: updatedScript.traction || '',
+      script_type: scriptType,
+      demo_requirements: updatedScript.requirements || '',
+      demo_tools: updatedScript.tools || '',
+      demo_realworld_use: updatedScript.realworld_use || '',
+      intro_who: updatedScript.who || '',
+      intro_what: updatedScript.what || '',
+      intro_why: updatedScript.why || '',
+    };
+
+    // Always notify parent with the updated script data
+    onScriptSaved?.(scriptData);
+
     // Save to database if project exists
     if (projectId) {
       setIsSaving(true);
       try {
-        const saved = await databaseService.savePitchScript(projectId, idea || 'Manual Script', {
-          problem: updatedScript.problem,
-          solution: updatedScript.solution,
-          traction: updatedScript.traction,
-          script_type: scriptType,
-          demo_requirements: updatedScript.requirements || '',
-          demo_tools: updatedScript.tools || '',
-          demo_realworld_use: updatedScript.realworld_use || '',
-          intro_who: updatedScript.who || '',
-          intro_what: updatedScript.what || '',
-          intro_why: updatedScript.why || '',
+        await databaseService.savePitchScript(projectId, idea || 'Manual Script', {
+          ...scriptData,
           github_url: githubUrl || '',
           github_analyzed: !!githubUrl,
           your_name: yourName || '',
         });
-
-        if (saved) {
-          // Notify parent that script was saved
-          onScriptSaved?.();
-        }
       } catch (error) {
         console.error('Save failed:', error);
       } finally {

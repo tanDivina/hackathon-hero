@@ -679,11 +679,29 @@ function HackathonWizard() {
               projectId={currentProject?.id}
               reloadKey={scriptReloadKey}
               onShowProModal={() => setShowProModal(true)}
-              onScriptSaved={async () => {
-                if (currentProject) {
-                  const updated = await databaseService.getPitchScript(currentProject.id);
-                  setCurrentPitchScript(updated);
-                }
+              onScriptSaved={async (scriptData) => {
+                // Update the pitch script immediately with the saved data
+                setCurrentPitchScript({
+                  id: currentPitchScript?.id || '',
+                  project_id: currentProject?.id || '',
+                  idea_text: currentPitchScript?.idea_text || 'Manual Script',
+                  problem: scriptData.problem,
+                  solution: scriptData.solution,
+                  traction: scriptData.traction,
+                  script_type: scriptData.script_type,
+                  demo_requirements: scriptData.demo_requirements,
+                  demo_tools: scriptData.demo_tools,
+                  demo_realworld_use: scriptData.demo_realworld_use,
+                  intro_who: scriptData.intro_who,
+                  intro_what: scriptData.intro_what,
+                  intro_why: scriptData.intro_why,
+                  github_url: currentPitchScript?.github_url || '',
+                  github_analyzed: currentPitchScript?.github_analyzed || false,
+                  your_name: currentPitchScript?.your_name || '',
+                  intro_full_script: '',
+                  created_at: currentPitchScript?.created_at || new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                });
               }}
             />
             <VideoCreator
