@@ -64,7 +64,22 @@ function HackathonWizard() {
           setIsPro(false);
           setCurrentProject(null);
         } else if (event === 'SIGNED_IN' && session) {
-          await initializeApp();
+          // When signing in, only reinitialize if there's no current project
+          const projects = await databaseService.getProjects();
+          if (projects.length > 0) {
+            // Check if we need to set a project
+            setCurrentProject(prev => {
+              if (!prev) {
+                console.log('🔐 Signed in, setting project to:', projects[0].name);
+                return projects[0];
+              }
+              console.log('🔐 Signed in, keeping current project:', prev.name);
+              return prev;
+            });
+          }
+          // Update pro status
+          const hasProAccess = await databaseService.checkProStatus();
+          setIsPro(hasProAccess);
         }
       })();
     });
@@ -79,18 +94,24 @@ function HackathonWizard() {
   }, [currentProject]);
 
   const initializeApp = async () => {
+    console.log('🚀 initializeApp called, currentProject:', currentProject?.name);
     const hasProAccess = await databaseService.checkProStatus();
     setIsPro(hasProAccess);
 
     const projects = await databaseService.getProjects();
+    console.log('📦 Found projects:', projects.map(p => p.name));
     if (projects.length === 0) {
+      console.log('📦 No projects found, creating new one');
       const newProject = await databaseService.createProject('My First Hackathon');
       if (newProject) {
         setCurrentProject(newProject);
       }
     } else if (!currentProject) {
+      console.log('📦 No current project, setting to:', projects[0].name);
       // Only set project if none is selected
       setCurrentProject(projects[0]);
+    } else {
+      console.log('📦 Keeping current project:', currentProject.name);
     }
   };
 
