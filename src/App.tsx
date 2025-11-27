@@ -679,6 +679,12 @@ function HackathonWizard() {
               projectId={currentProject?.id}
               reloadKey={scriptReloadKey}
               onShowProModal={() => setShowProModal(true)}
+              onScriptSaved={async () => {
+                if (currentProject) {
+                  const updated = await databaseService.getPitchScript(currentProject.id);
+                  setCurrentPitchScript(updated);
+                }
+              }}
             />
             <VideoCreator
               isPro={isPro}
@@ -693,6 +699,9 @@ function HackathonWizard() {
                 requirements: currentPitchScript.demo_requirements,
                 tools: currentPitchScript.demo_tools,
                 realworld_use: currentPitchScript.demo_realworld_use,
+                who: currentPitchScript.intro_who,
+                what: currentPitchScript.intro_what,
+                why: currentPitchScript.intro_why,
               } : undefined}
             />
           </div>

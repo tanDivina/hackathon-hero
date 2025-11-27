@@ -25,11 +25,12 @@ interface PitchScriptProps {
   projectId?: string;
   reloadKey?: number;
   onShowProModal?: () => void;
+  onScriptSaved?: () => void;
 }
 
 type SectionKey = 'problem' | 'solution' | 'traction' | 'requirements' | 'tools' | 'realworld_use' | 'who' | 'what' | 'why';
 
-export const PitchScript: React.FC<PitchScriptProps> = ({ onGenerate, isPro, projectId, reloadKey, onShowProModal }) => {
+export const PitchScript: React.FC<PitchScriptProps> = ({ onGenerate, isPro, projectId, reloadKey, onShowProModal, onScriptSaved }) => {
   const [idea, setIdea] = useState('');
   const [scriptType, setScriptType] = useState<'pitch' | 'demo' | 'intro'>('pitch');
   const [yourName, setYourName] = useState('');
@@ -247,6 +248,9 @@ export const PitchScript: React.FC<PitchScriptProps> = ({ onGenerate, isPro, pro
         setScript({ ...updatedScript, fullScript: updatedFullScript });
         setEditingSection(null);
         setEditedContent('');
+
+        // Notify parent that script was saved
+        onScriptSaved?.();
       }
     } catch (error) {
       console.error('Save failed:', error);

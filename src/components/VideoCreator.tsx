@@ -20,10 +20,13 @@ interface VideoCreatorProps {
     problem: string;
     solution: string;
     traction: string;
-    script_type?: 'pitch' | 'demo';
+    script_type?: 'pitch' | 'demo' | 'intro';
     requirements?: string;
     tools?: string;
     realworld_use?: string;
+    who?: string;
+    what?: string;
+    why?: string;
   };
 }
 
@@ -520,15 +523,22 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
     a.click();
   };
 
-  const sections = (pitchScript && pitchScript.problem) ? (
-    pitchScript.script_type === 'demo' ? [
+  const sections = pitchScript ? (
+    pitchScript.script_type === 'intro' && pitchScript.who ? [
+      { text: pitchScript.who },
+      { text: pitchScript.what || '' },
+      { text: pitchScript.why || '' },
+    ] : pitchScript.script_type === 'demo' && pitchScript.problem ? [
+      { text: pitchScript.problem },
+      { text: pitchScript.solution },
+      { text: pitchScript.traction },
+    ] : pitchScript.problem ? [
       { text: pitchScript.problem },
       { text: pitchScript.solution },
       { text: pitchScript.traction },
     ] : [
-      { text: pitchScript.problem },
-      { text: pitchScript.solution },
-      { text: pitchScript.traction },
+      { text: 'Script will appear here.' },
+      { text: 'Text scrolls when recording starts.' }
     ]
   ) : [
     { text: 'Script will appear here.' },
