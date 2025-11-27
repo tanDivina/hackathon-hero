@@ -5,6 +5,7 @@ export interface ExportData {
   rulesData?: RulesData | null;
   promptData?: PromptData | null;
   pitchScriptData?: PitchScriptData | null;
+  ideaName?: string;
 }
 
 export const exportUtils = {
@@ -35,7 +36,10 @@ export const exportUtils = {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${data.project.name.toLowerCase().replace(/\s+/g, '-')}.json`;
+    const fileName = data.ideaName
+      ? `pitch-script-${data.ideaName.toLowerCase().replace(/\s+/g, '-')}.json`
+      : `${data.project.name.toLowerCase().replace(/\s+/g, '-')}.json`;
+    a.download = fileName;
     a.click();
     URL.revokeObjectURL(url);
   },
@@ -92,7 +96,10 @@ export const exportUtils = {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${data.project.name.toLowerCase().replace(/\s+/g, '-')}.md`;
+    const fileName = data.ideaName
+      ? `pitch-script-${data.ideaName.toLowerCase().replace(/\s+/g, '-')}.md`
+      : `${data.project.name.toLowerCase().replace(/\s+/g, '-')}.md`;
+    a.download = fileName;
     a.click();
     URL.revokeObjectURL(url);
   },
@@ -318,7 +325,10 @@ export const exportUtils = {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${data.project.name.toLowerCase().replace(/\s+/g, '-')}.txt`;
+    const fileName = data.ideaName
+      ? `pitch-script-${data.ideaName.toLowerCase().replace(/\s+/g, '-')}.txt`
+      : `${data.project.name.toLowerCase().replace(/\s+/g, '-')}.txt`;
+    a.download = fileName;
     a.click();
     URL.revokeObjectURL(url);
   },
@@ -422,7 +432,10 @@ export const exportUtils = {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${data.project.name.toLowerCase().replace(/\s+/g, '-')}.doc`;
+    const fileName = data.ideaName
+      ? `pitch-script-${data.ideaName.toLowerCase().replace(/\s+/g, '-')}.doc`
+      : `${data.project.name.toLowerCase().replace(/\s+/g, '-')}.doc`;
+    a.download = fileName;
     a.click();
     URL.revokeObjectURL(url);
   },

@@ -524,6 +524,7 @@ function HackathonWizard() {
       rulesData,
       promptData,
       pitchScriptData,
+      ideaName: currentIdeaName,
     };
 
     switch (format) {
