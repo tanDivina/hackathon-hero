@@ -12,6 +12,7 @@ interface ScriptSectionProps {
   onSelectAlternative?: (alternative: string) => void;
   alternatives?: string[];
   isGeneratingAlternatives?: boolean;
+  hideRegenerate?: boolean;
 }
 
 export const ScriptSection: React.FC<ScriptSectionProps> = ({
@@ -25,6 +26,7 @@ export const ScriptSection: React.FC<ScriptSectionProps> = ({
   onSelectAlternative,
   alternatives,
   isGeneratingAlternatives,
+  hideRegenerate = false,
 }) => {
   const [showAlternatives, setShowAlternatives] = useState(false);
   const [showTips, setShowTips] = useState(false);
@@ -54,14 +56,16 @@ export const ScriptSection: React.FC<ScriptSectionProps> = ({
           >
             <Info size={14} />
           </button>
-          <button
-            onClick={handleRegenerate}
-            disabled={isGeneratingAlternatives}
-            className="p-1 text-gray-500 hover:text-accent-yellow transition-colors disabled:opacity-30"
-            title="Generate alternatives"
-          >
-            <RefreshCw size={14} className={isGeneratingAlternatives ? 'animate-spin' : ''} />
-          </button>
+          {!hideRegenerate && (
+            <button
+              onClick={handleRegenerate}
+              disabled={isGeneratingAlternatives}
+              className="p-1 text-gray-500 hover:text-accent-yellow transition-colors disabled:opacity-30"
+              title="Generate alternatives"
+            >
+              <RefreshCw size={14} className={isGeneratingAlternatives ? 'animate-spin' : ''} />
+            </button>
+          )}
           <button
             onClick={onEdit}
             className="p-1 text-gray-500 hover:text-accent-yellow transition-colors"

@@ -41,6 +41,7 @@ export const PitchScript: React.FC<PitchScriptProps> = ({ onGenerate, isPro, pro
   const [isSaving, setIsSaving] = useState(false);
   const [generatingAlternatives, setGeneratingAlternatives] = useState<SectionKey | null>(null);
   const [alternatives, setAlternatives] = useState<Record<SectionKey, string[]>>({} as Record<SectionKey, string[]>);
+  const [manualMode, setManualMode] = useState(false);
 
   useEffect(() => {
     loadSavedData();
@@ -145,6 +146,39 @@ export const PitchScript: React.FC<PitchScriptProps> = ({ onGenerate, isPro, pro
     }
   };
 
+  const handleCreateManual = () => {
+    const emptyScript: ScriptSections = scriptType === 'intro'
+      ? {
+          problem: '',
+          solution: '',
+          traction: '',
+          who: '',
+          what: '',
+          why: '',
+          fullScript: '',
+        }
+      : scriptType === 'demo'
+      ? {
+          problem: '',
+          solution: '',
+          traction: '',
+          requirements: '',
+          tools: '',
+          realworld_use: '',
+          fullScript: '',
+        }
+      : {
+          problem: '',
+          solution: '',
+          traction: '',
+          fullScript: '',
+        };
+
+    setScript(emptyScript);
+    setManualMode(true);
+    setAlternatives({} as Record<SectionKey, string[]>);
+  };
+
   const handleGenerate = async () => {
     if (!idea.trim()) return;
 
@@ -154,6 +188,7 @@ export const PitchScript: React.FC<PitchScriptProps> = ({ onGenerate, isPro, pro
     }
 
     setIsGenerating(true);
+    setManualMode(false);
     try {
       const result = await onGenerate(idea, scriptType, githubUrl || undefined, yourName || undefined);
       setScript(result);
@@ -186,7 +221,7 @@ export const PitchScript: React.FC<PitchScriptProps> = ({ onGenerate, isPro, pro
 
     setIsSaving(true);
     try {
-      const saved = await databaseService.savePitchScript(projectId, idea, {
+      const saved = await databaseService.savePitchScript(projectId, idea || 'Manual Script', {
         problem: updatedScript.problem,
         solution: updatedScript.solution,
         traction: updatedScript.traction,
@@ -194,12 +229,18 @@ export const PitchScript: React.FC<PitchScriptProps> = ({ onGenerate, isPro, pro
         demo_requirements: updatedScript.requirements || '',
         demo_tools: updatedScript.tools || '',
         demo_realworld_use: updatedScript.realworld_use || '',
+        intro_who: updatedScript.who || '',
+        intro_what: updatedScript.what || '',
+        intro_why: updatedScript.why || '',
         github_url: githubUrl || '',
         github_analyzed: !!githubUrl,
+        your_name: yourName || '',
       });
 
       if (saved) {
-        const updatedFullScript = scriptType === 'demo'
+        const updatedFullScript = scriptType === 'intro'
+          ? `WHO (6-7s):\n${updatedScript.who}\n\nWHAT (6-7s):\n${updatedScript.what}\n\nWHY (6-7s):\n${updatedScript.why}`
+          : scriptType === 'demo'
           ? `PROBLEM (45s):\n${updatedScript.problem}\n\nREQUIREMENTS (30s):\n${updatedScript.requirements}\n\nSOLUTION (60s):\n${updatedScript.solution}\n\nTOOLS (30s):\n${updatedScript.tools}\n\nREAL-WORLD USE (30s):\n${updatedScript.realworld_use}\n\nTRACTION (15s):\n${updatedScript.traction}`
           : `PROBLEM (60s):\n${updatedScript.problem}\n\nSOLUTION (90s):\n${updatedScript.solution}\n\nTRACTION (30s):\n${updatedScript.traction}`;
 
@@ -417,21 +458,39 @@ export const PitchScript: React.FC<PitchScriptProps> = ({ onGenerate, isPro, pro
               </p>
             </div>
           )}
-          <button
-            onClick={handleGenerate}
-            disabled={!idea.trim() || isGenerating || !!editingSection}
-            className="w-full bg-accent-yellow text-black font-bold py-3 text-sm tracking-wide hover:bg-accent-green transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-            title="Click to generate a new script based on your current idea"
-          >
-            {isGenerating ? 'GENERATING...' : 'GENERATE SCRIPT'}
-          </button>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={handleGenerate}
+              disabled={!idea.trim() || isGenerating || !!editingSection}
+              className="bg-accent-yellow text-black font-bold py-3 text-sm tracking-wide hover:bg-accent-green transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              title="Click to generate a new script based on your current idea"
+            >
+              {isGenerating ? 'GENERATING...' : 'GENERATE SCRIPT'}
+            </button>
+            <button
+              onClick={handleCreateManual}
+              disabled={isGenerating || !!editingSection}
+              className="border-2 border-accent-yellow text-accent-yellow font-bold py-3 text-sm tracking-wide hover:bg-accent-yellow hover:text-black transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              title="Create empty script sections to write your own"
+            >
+              WRITE MY OWN
+            </button>
+          </div>
         </div>
 
         {script && (
           <div className="mt-6 space-y-4 pt-6 border-t border-gray-800">
+            {manualMode && (
+              <div className="flex items-center gap-2 px-3 py-2 bg-accent-yellow/10 border border-accent-yellow rounded">
+                <span className="text-xs text-accent-yellow">✍️</span>
+                <p className="text-xs text-accent-yellow">
+                  <strong>Manual Mode:</strong> Click any section below to write your script. Each edit saves automatically.
+                </p>
+              </div>
+            )}
             <div className="flex items-center justify-between mb-4">
               <span className="text-xs text-gray-500 font-mono uppercase tracking-wider">
-                {scriptType === 'pitch' ? '3 minute pitch structure' : '3 minute demo structure'}
+                {scriptType === 'intro' ? '20 second intro structure' : scriptType === 'pitch' ? '3 minute pitch structure' : '3 minute demo structure'}
               </span>
               <div className="flex items-center gap-2">
                 {editingSection ? (
@@ -492,6 +551,7 @@ export const PitchScript: React.FC<PitchScriptProps> = ({ onGenerate, isPro, pro
                       onSelectAlternative={(alt) => handleSelectAlternative('who', alt)}
                       alternatives={alternatives.who}
                       isGeneratingAlternatives={generatingAlternatives === 'who'}
+                      hideRegenerate={manualMode}
                     />
 
                     <ScriptSection
@@ -505,6 +565,7 @@ export const PitchScript: React.FC<PitchScriptProps> = ({ onGenerate, isPro, pro
                       onSelectAlternative={(alt) => handleSelectAlternative('what', alt)}
                       alternatives={alternatives.what}
                       isGeneratingAlternatives={generatingAlternatives === 'what'}
+                      hideRegenerate={manualMode}
                     />
 
                     <ScriptSection
@@ -518,6 +579,7 @@ export const PitchScript: React.FC<PitchScriptProps> = ({ onGenerate, isPro, pro
                       onSelectAlternative={(alt) => handleSelectAlternative('why', alt)}
                       alternatives={alternatives.why}
                       isGeneratingAlternatives={generatingAlternatives === 'why'}
+                      hideRegenerate={manualMode}
                     />
                   </>
                 ) : (
@@ -533,6 +595,7 @@ export const PitchScript: React.FC<PitchScriptProps> = ({ onGenerate, isPro, pro
                       onSelectAlternative={(alt) => handleSelectAlternative('problem', alt)}
                       alternatives={alternatives.problem}
                       isGeneratingAlternatives={generatingAlternatives === 'problem'}
+                      hideRegenerate={manualMode}
                     />
 
                     {scriptType === 'demo' && script.requirements && (
@@ -547,6 +610,7 @@ export const PitchScript: React.FC<PitchScriptProps> = ({ onGenerate, isPro, pro
                     onSelectAlternative={(alt) => handleSelectAlternative('requirements', alt)}
                     alternatives={alternatives.requirements}
                     isGeneratingAlternatives={generatingAlternatives === 'requirements'}
+                    hideRegenerate={manualMode}
                   />
                 )}
 
@@ -561,6 +625,7 @@ export const PitchScript: React.FC<PitchScriptProps> = ({ onGenerate, isPro, pro
                   onSelectAlternative={(alt) => handleSelectAlternative('solution', alt)}
                   alternatives={alternatives.solution}
                   isGeneratingAlternatives={generatingAlternatives === 'solution'}
+                  hideRegenerate={manualMode}
                 />
 
                 {scriptType === 'demo' && script.tools && (
@@ -575,6 +640,7 @@ export const PitchScript: React.FC<PitchScriptProps> = ({ onGenerate, isPro, pro
                     onSelectAlternative={(alt) => handleSelectAlternative('tools', alt)}
                     alternatives={alternatives.tools}
                     isGeneratingAlternatives={generatingAlternatives === 'tools'}
+                    hideRegenerate={manualMode}
                   />
                 )}
 
@@ -590,6 +656,7 @@ export const PitchScript: React.FC<PitchScriptProps> = ({ onGenerate, isPro, pro
                     onSelectAlternative={(alt) => handleSelectAlternative('realworld_use', alt)}
                     alternatives={alternatives.realworld_use}
                     isGeneratingAlternatives={generatingAlternatives === 'realworld_use'}
+                    hideRegenerate={manualMode}
                   />
                 )}
 
@@ -604,6 +671,7 @@ export const PitchScript: React.FC<PitchScriptProps> = ({ onGenerate, isPro, pro
                       onSelectAlternative={(alt) => handleSelectAlternative('traction', alt)}
                       alternatives={alternatives.traction}
                       isGeneratingAlternatives={generatingAlternatives === 'traction'}
+                      hideRegenerate={manualMode}
                     />
                   </>
                 )}
