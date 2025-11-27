@@ -398,13 +398,24 @@ export const PitchScript: React.FC<PitchScriptProps> = ({ onGenerate, isPro, pro
           </div>
         )}
 
-        <button
-          onClick={handleGenerate}
-          disabled={!idea.trim() || isGenerating || !!editingSection}
-          className="w-full bg-accent-yellow text-black font-bold py-3 text-sm tracking-wide hover:bg-accent-green transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-        >
-          {isGenerating ? 'GENERATING...' : 'GENERATE SCRIPT'}
-        </button>
+        <div className="space-y-2">
+          {script && (
+            <div className="flex items-center gap-2 px-3 py-2 bg-gray-900 border border-gray-800 rounded">
+              <span className="text-xs text-accent-yellow">💡</span>
+              <p className="text-xs text-gray-400">
+                Idea changed? Click <span className="text-accent-yellow font-bold">GENERATE SCRIPT</span> to update
+              </p>
+            </div>
+          )}
+          <button
+            onClick={handleGenerate}
+            disabled={!idea.trim() || isGenerating || !!editingSection}
+            className="w-full bg-accent-yellow text-black font-bold py-3 text-sm tracking-wide hover:bg-accent-green transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            title="Click to generate a new script based on your current idea"
+          >
+            {isGenerating ? 'GENERATING...' : 'GENERATE SCRIPT'}
+          </button>
+        </div>
 
         {script && (
           <div className="mt-6 space-y-4 pt-6 border-t border-gray-800">
