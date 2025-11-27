@@ -641,13 +641,25 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
                         <div className="bg-gray-900 p-3 rounded space-y-2 border border-gray-800">
                             <div className="flex justify-between items-center mb-1">
                                 <span className="text-[10px] text-gray-400 font-mono">LOGO SIZE</span>
-                                <button
-                                  onClick={handleDownloadLogo}
-                                  className="text-black bg-accent-yellow hover:bg-white transition-colors flex items-center gap-1 text-[9px] font-bold px-2 py-1 rounded"
-                                  title="Download Logo"
-                                >
-                                    <Download size={10} /> SAVE PNG
-                                </button>
+                                <div className="flex gap-1">
+                                    <button
+                                      onClick={handleDownloadLogo}
+                                      className="text-black bg-accent-yellow hover:bg-white transition-colors flex items-center gap-1 text-[9px] font-bold px-2 py-1 rounded"
+                                      title="Download Logo"
+                                    >
+                                        <Download size={10} /> SAVE
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        setLogoFile('');
+                                        logoImageRef.current = null;
+                                      }}
+                                      className="text-white bg-red-600 hover:bg-red-700 transition-colors flex items-center gap-1 text-[9px] font-bold px-2 py-1 rounded"
+                                      title="Remove Logo"
+                                    >
+                                        <X size={10} /> REMOVE
+                                    </button>
+                                </div>
                             </div>
                             <input
                                 type="range" min="50" max="400"
