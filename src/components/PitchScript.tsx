@@ -93,6 +93,16 @@ export const PitchScript: React.FC<PitchScriptProps> = ({ onGenerate, isPro, pro
     const saved = await databaseService.getPitchScript(projectId);
     if (saved) {
       setIdea(latestIdea);
+
+      // If the saved script was generated for a different idea, don't load it
+      if (saved.idea_text !== latestIdea) {
+        setScript(null);
+        setScriptType('pitch');
+        setGithubUrl('');
+        setYourName('');
+        return;
+      }
+
       setScriptType(saved.script_type || 'pitch');
       setGithubUrl(saved.github_url || '');
       setYourName(saved.your_name || '');
