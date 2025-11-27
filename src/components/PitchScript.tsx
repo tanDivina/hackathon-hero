@@ -216,46 +216,50 @@ export const PitchScript: React.FC<PitchScriptProps> = ({ onGenerate, isPro, pro
   };
 
   const handleSaveEdit = async () => {
-    if (!editingSection || !projectId || !script) return;
+    if (!editingSection || !script) return;
 
     const updatedScript = { ...script, [editingSection]: editedContent };
 
-    setIsSaving(true);
-    try {
-      const saved = await databaseService.savePitchScript(projectId, idea || 'Manual Script', {
-        problem: updatedScript.problem,
-        solution: updatedScript.solution,
-        traction: updatedScript.traction,
-        script_type: scriptType,
-        demo_requirements: updatedScript.requirements || '',
-        demo_tools: updatedScript.tools || '',
-        demo_realworld_use: updatedScript.realworld_use || '',
-        intro_who: updatedScript.who || '',
-        intro_what: updatedScript.what || '',
-        intro_why: updatedScript.why || '',
-        github_url: githubUrl || '',
-        github_analyzed: !!githubUrl,
-        your_name: yourName || '',
-      });
+    // Update local state immediately for better UX
+    const updatedFullScript = scriptType === 'intro'
+      ? `WHO (6-7s):\n${updatedScript.who}\n\nWHAT (6-7s):\n${updatedScript.what}\n\nWHY (6-7s):\n${updatedScript.why}`
+      : scriptType === 'demo'
+      ? `PROBLEM (45s):\n${updatedScript.problem}\n\nREQUIREMENTS (30s):\n${updatedScript.requirements}\n\nSOLUTION (60s):\n${updatedScript.solution}\n\nTOOLS (30s):\n${updatedScript.tools}\n\nREAL-WORLD USE (30s):\n${updatedScript.realworld_use}\n\nTRACTION (15s):\n${updatedScript.traction}`
+      : `PROBLEM (60s):\n${updatedScript.problem}\n\nSOLUTION (90s):\n${updatedScript.solution}\n\nTRACTION (30s):\n${updatedScript.traction}`;
 
-      if (saved) {
-        const updatedFullScript = scriptType === 'intro'
-          ? `WHO (6-7s):\n${updatedScript.who}\n\nWHAT (6-7s):\n${updatedScript.what}\n\nWHY (6-7s):\n${updatedScript.why}`
-          : scriptType === 'demo'
-          ? `PROBLEM (45s):\n${updatedScript.problem}\n\nREQUIREMENTS (30s):\n${updatedScript.requirements}\n\nSOLUTION (60s):\n${updatedScript.solution}\n\nTOOLS (30s):\n${updatedScript.tools}\n\nREAL-WORLD USE (30s):\n${updatedScript.realworld_use}\n\nTRACTION (15s):\n${updatedScript.traction}`
-          : `PROBLEM (60s):\n${updatedScript.problem}\n\nSOLUTION (90s):\n${updatedScript.solution}\n\nTRACTION (30s):\n${updatedScript.traction}`;
+    setScript({ ...updatedScript, fullScript: updatedFullScript });
+    setEditingSection(null);
+    setEditedContent('');
 
-        setScript({ ...updatedScript, fullScript: updatedFullScript });
-        setEditingSection(null);
-        setEditedContent('');
+    // Save to database if project exists
+    if (projectId) {
+      setIsSaving(true);
+      try {
+        const saved = await databaseService.savePitchScript(projectId, idea || 'Manual Script', {
+          problem: updatedScript.problem,
+          solution: updatedScript.solution,
+          traction: updatedScript.traction,
+          script_type: scriptType,
+          demo_requirements: updatedScript.requirements || '',
+          demo_tools: updatedScript.tools || '',
+          demo_realworld_use: updatedScript.realworld_use || '',
+          intro_who: updatedScript.who || '',
+          intro_what: updatedScript.what || '',
+          intro_why: updatedScript.why || '',
+          github_url: githubUrl || '',
+          github_analyzed: !!githubUrl,
+          your_name: yourName || '',
+        });
 
-        // Notify parent that script was saved
-        onScriptSaved?.();
+        if (saved) {
+          // Notify parent that script was saved
+          onScriptSaved?.();
+        }
+      } catch (error) {
+        console.error('Save failed:', error);
+      } finally {
+        setIsSaving(false);
       }
-    } catch (error) {
-      console.error('Save failed:', error);
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -529,16 +533,25 @@ export const PitchScript: React.FC<PitchScriptProps> = ({ onGenerate, isPro, pro
             </div>
 
             {editingSection ? (
-              <div className="bg-black/50 border border-gray-800 p-4">
-                <p className="text-xs text-gray-500 font-mono uppercase tracking-wider mb-3">
-                  Editing: {editingSection}
-                </p>
+              <div className="bg-black/50 border-l-4 border-accent-yellow p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <p className="text-sm text-accent-yellow font-mono uppercase tracking-wider">
+                    Editing: {editingSection.replace('_', ' ')}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    Click SAVE above to finish editing and move to next section
+                  </p>
+                </div>
                 <textarea
                   value={editedContent}
                   onChange={(e) => setEditedContent(e.target.value)}
-                  className="w-full h-48 bg-black border border-gray-800 p-3 text-sm text-gray-300 focus:border-gray-700 focus:outline-none resize-none"
-                  placeholder="Edit section content..."
+                  className="w-full h-64 bg-black border border-gray-800 p-4 text-base text-gray-300 focus:border-accent-yellow focus:outline-none resize-none leading-relaxed"
+                  placeholder="Write your script here..."
+                  autoFocus
                 />
+                <p className="text-xs text-gray-500 mt-3">
+                  💡 Tip: After saving, you can click on any other section to edit it
+                </p>
               </div>
             ) : (
               <div className="space-y-4">
