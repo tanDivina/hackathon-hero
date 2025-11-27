@@ -428,7 +428,7 @@ export const IdeaGenerator: React.FC<IdeaGeneratorProps> = ({
                   <p className="text-xs text-gray-600 group-hover:text-accent-yellow leading-relaxed flex items-center gap-2 transition-colors">
                     <ArrowRight size={14} className="text-accent-yellow flex-shrink-0" />
                     <span>
-                      Click to send this idea to the Prompt Optimizer, or click Back to choose a different candidate.
+                      Click to send this idea to the Prompt Optimizer, or click CANDIDATE IDEAS to choose a different candidate.
                     </span>
                   </p>
                 </button>
