@@ -122,10 +122,15 @@ function HackathonWizard() {
     // Remove ordinal suffixes (st, nd, rd, th)
     let cleanedStr = dateStr.replace(/(\d+)(st|nd|rd|th)/gi, '$1');
 
+    // Capture timezone before removing it
+    const timezoneMatch = dateStr.match(/\s+(PT|PST|PDT|ET|EST|EDT|CT|CST|CDT|MT|MST|MDT)$/i);
+    const timezone = timezoneMatch ? timezoneMatch[1].toUpperCase() : null;
+
     // Remove timezone abbreviations that confuse Date parser
     cleanedStr = cleanedStr.replace(/\s+(PT|PST|PDT|ET|EST|EDT|CT|CST|CDT|MT|MST|MDT)$/i, '');
 
     console.log('🧹 Cleaned date string:', cleanedStr);
+    console.log('🌍 Detected timezone:', timezone);
 
     // Check if year is missing and add current or next year
     const hasYear = /\d{4}/.test(cleanedStr);
@@ -162,11 +167,37 @@ function HackathonWizard() {
       }
     }
 
-    // CRITICAL FIX: Set time to end of day (23:59:59) in local timezone
-    // This ensures the deadline is the END of the specified day, not midnight
+    // Set time to end of day (23:59:59.999)
     if (!isNaN(parsedDate.getTime())) {
       parsedDate.setHours(23, 59, 59, 999);
-      console.log('⏰ Set deadline to end of day:', parsedDate.toString());
+
+      // CRITICAL: Apply timezone offset if detected
+      // Convert the date from the specified timezone to UTC
+      if (timezone) {
+        const timezoneOffsets: { [key: string]: number } = {
+          'PT': -8, 'PST': -8, 'PDT': -7,  // Pacific
+          'MT': -7, 'MST': -7, 'MDT': -6,  // Mountain
+          'CT': -6, 'CST': -6, 'CDT': -5,  // Central
+          'ET': -5, 'EST': -5, 'EDT': -4,  // Eastern
+        };
+
+        const offset = timezoneOffsets[timezone];
+        if (offset !== undefined) {
+          // Get the local timezone offset
+          const localOffset = -parsedDate.getTimezoneOffset() / 60;
+          // Calculate difference between specified timezone and local timezone
+          const hoursDifference = offset - localOffset;
+
+          console.log(`⏰ Timezone conversion: ${timezone} (UTC${offset}) -> Local (UTC${localOffset})`);
+          console.log(`⏰ Adjusting by ${hoursDifference} hours`);
+
+          // Adjust the date by the difference
+          parsedDate.setHours(parsedDate.getHours() - hoursDifference);
+          console.log('⏰ Adjusted deadline to local time:', parsedDate.toString());
+        }
+      } else {
+        console.log('⏰ No timezone specified, using local time:', parsedDate.toString());
+      }
     }
 
     return isNaN(parsedDate.getTime()) ? null : parsedDate;
