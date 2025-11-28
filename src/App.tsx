@@ -162,6 +162,13 @@ function HackathonWizard() {
       }
     }
 
+    // CRITICAL FIX: Set time to end of day (23:59:59) in local timezone
+    // This ensures the deadline is the END of the specified day, not midnight
+    if (!isNaN(parsedDate.getTime())) {
+      parsedDate.setHours(23, 59, 59, 999);
+      console.log('⏰ Set deadline to end of day:', parsedDate.toString());
+    }
+
     return isNaN(parsedDate.getTime()) ? null : parsedDate;
   };
 
