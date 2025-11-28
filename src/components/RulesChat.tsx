@@ -52,7 +52,7 @@ export const RulesChat: React.FC<RulesChatProps> = ({
   }, [messages]);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
   };
 
   const loadRulesContext = async () => {
@@ -109,6 +109,12 @@ ${project.custom_instructions}
     setMessages(prev => [...prev, userMessage]);
     setInputValue('');
     setIsLoading(true);
+
+    // Prevent page scroll by keeping focus on input
+    const activeElement = document.activeElement as HTMLElement;
+    if (activeElement) {
+      activeElement.blur();
+    }
 
     try {
       await databaseService.saveChatMessage(projectId, 'user', userMessage.content);
