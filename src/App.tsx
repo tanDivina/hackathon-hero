@@ -572,14 +572,14 @@ function HackathonWizard() {
   return (
     <div className="min-h-screen bg-black">
       <div className="relative">
-        <div className="max-w-7xl mx-auto px-8 py-12">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-6xl font-black tracking-tight">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12">
+          <div className="flex items-center justify-between mb-4 gap-4">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight">
               <span className="text-white header-text">HACKATHON</span>
               <span className="text-accent-yellow header-text">HERO</span>
             </h1>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4">
               {isSaving && (
                 <span className="flex items-center gap-2 text-accent-yellow text-xs font-mono">
                   <Save size={14} className="animate-pulse" />
@@ -592,31 +592,32 @@ function HackathonWizard() {
                 <>
                   <button
                     onClick={() => navigate('/login')}
-                    className="px-6 py-2.5 text-sm font-bold tracking-wide transition-all rounded border border-gray-700 text-gray-400 hover:border-gray-500 hover:text-white"
+                    className="px-3 sm:px-6 py-2 sm:py-2.5 text-xs sm:text-sm font-bold tracking-wide transition-all rounded border border-gray-700 text-gray-400 hover:border-gray-500 hover:text-white"
                   >
                     LOGIN
                   </button>
                   <button
                     onClick={() => setShowProModal(true)}
-                    className="px-6 py-2.5 text-sm font-bold tracking-wide transition-all rounded border border-gray-700 text-gray-400 hover:border-gray-500 hover:text-white flex items-center gap-2"
+                    className="px-3 sm:px-6 py-2 sm:py-2.5 text-xs sm:text-sm font-bold tracking-wide transition-all rounded border border-gray-700 text-gray-400 hover:border-gray-500 hover:text-white flex items-center gap-1 sm:gap-2"
                   >
-                    <Lock size={16} />
-                    UNLOCK PRO
+                    <Lock size={14} className="sm:w-4 sm:h-4" />
+                    <span className="hidden sm:inline">UNLOCK PRO</span>
+                    <span className="sm:hidden">PRO</span>
                   </button>
                 </>
               )}
             </div>
           </div>
 
-          <div className="border-b border-gray-800 mb-8 pb-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <p className="text-accent-yellow font-mono text-sm tracking-wider">
+          <div className="border-b border-gray-800 mb-6 sm:mb-8 pb-4 sm:pb-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <p className="text-accent-yellow font-mono text-xs sm:text-sm tracking-wider">
                   // HACKATHON PLANNING COMMAND CENTER
                 </p>
                 <HelpButton onClick={() => setShowInfoModal(true)} />
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
                 <ExportDropdown
                   onExport={handleExport}
                   disabled={!currentProject}
@@ -633,7 +634,7 @@ function HackathonWizard() {
             </div>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-6" key={currentProject?.id}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6" key={currentProject?.id}>
             <RulesParser
               onParse={handleParseRules}
               onParseFromUrl={handleParseRulesFromUrl}
