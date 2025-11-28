@@ -239,6 +239,20 @@ you MUST incorporate them into your idea generation.
 
     const prompt = `You are an expert Hackathon Strategy Coach. Generate a high-potential winning project idea based on specific event rules and sponsors.
 
+🚨 CRITICAL: EVENT TITLE BIAS PREVENTION 🚨
+
+BEFORE YOU BEGIN:
+1. The EVENT NAME (e.g., "Founder Hackathon", "Summer Code Fest") is JUST BRANDING.
+2. Event names do NOT dictate project topics unless explicitly stated in the Judging Criteria.
+3. User Intent > Event Name ALWAYS.
+4. If a user wants to build a "Cat Health App" or "To-Do List", focus 100% on that topic.
+5. DO NOT shoehorn event title keywords (e.g., "Founder") into the project description.
+6. STRICT SEPARATION:
+   - Context: We are in a hackathon
+   - Topic: The user's idea or the theme (if VERTICAL)
+   - Constraints: ONLY the written rules and judging criteria
+   - The Title is NOT a constraint or rule
+
 ${rulesData.fullRulesText ? `FULL RULES DOCUMENT:
 \`\`\`
 ${rulesData.fullRulesText}
@@ -359,6 +373,20 @@ CRITICAL: Apply these insights to ALL 3 candidate ideas.
     }
 
     const prompt = `You are a Hackathon Strategy Coach. Generate 3 DISTINCT candidate project ideas.
+
+🚨 CRITICAL: EVENT TITLE BIAS PREVENTION 🚨
+
+BEFORE YOU BEGIN:
+1. IGNORE THE EVENT TITLE for topic selection. The hackathon name is just branding.
+2. Event names like "Founder Hackathon" or "Summer Code Fest" do NOT dictate what the project should be about.
+3. User Intent > Event Name ALWAYS.
+4. If user says "Cat Health App", build that. DO NOT force event title keywords into the description.
+5. Focus ONLY on:
+   - User's stated direction/idea
+   - Theme (if VERTICAL)
+   - Judging Criteria
+   - Sponsor requirements
+6. The event title is NOT a rule or constraint.
 
 EVENT DETAILS:
 Type: ${rulesData.eventType}
@@ -566,6 +594,12 @@ CRITICAL: If intel mentions tone (e.g., humor, formality), style, or specific fo
 
     const prompt = `Create a 20-second intro pitch for this project: "${idea}"
 
+🚨 CRITICAL: EVENT TITLE BIAS PREVENTION 🚨
+1. Focus 100% on THIS project: "${idea}"
+2. DO NOT force event title keywords into the pitch
+3. User Intent > Event Name ALWAYS
+4. The pitch is about the USER'S PROJECT, not about the event name
+
 The pitch must answer three questions in 20 seconds total:
 - Who you are (introduce yourself/team)
 - What you're building (project description)
@@ -621,6 +655,12 @@ CRITICAL: If intel mentions tone (e.g., humor, formality), style, or specific fo
 ` : '';
 
     const prompt = `Create a 3-minute elevator pitch script for this project: "${idea}"${insiderIntelSection}
+
+🚨 CRITICAL: EVENT TITLE BIAS PREVENTION 🚨
+1. Focus 100% on THIS project: "${idea}"
+2. DO NOT force event title keywords into the pitch unless they're part of the user's actual project
+3. User Intent > Event Name ALWAYS
+4. The pitch is about the USER'S PROJECT, not about the hackathon name or theme (unless the user's project is explicitly about that theme)
 
 Structure the pitch using the Problem-Solution-Traction framework. Return ONLY a JSON object with this exact structure:
 
@@ -703,6 +743,13 @@ ${githubUrl ? `- GitHub: ${githubUrl}` : ''}
 ` : '';
 
     const prompt = `Create a 3-minute demo video script for this project: "${idea}"
+
+🚨 CRITICAL: EVENT TITLE BIAS PREVENTION 🚨
+1. Focus 100% on THIS project: "${idea}"
+2. DO NOT force event title keywords into the demo script
+3. User Intent > Event Name ALWAYS
+4. The demo is about the USER'S PROJECT, not the event name
+5. When mentioning hackathon alignment, reference the judging criteria, NOT the event title
 
 ${contextInfo}${insiderIntelSection}
 

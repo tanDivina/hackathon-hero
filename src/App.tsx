@@ -344,7 +344,7 @@ function HackathonWizard() {
       theme: rulesData.theme,
       eventType: rulesData.event_type,
       fullRulesText: rulesData.rules_text,
-      customInstructions: `${customInstructions}\n\nEXPAND THIS CANDIDATE IDEA:\nTitle: ${candidate.title}\n${candidate.idea}\n\nProvide a more detailed version with enhanced features, technical details, and implementation strategy.\n\nCRITICAL: The project name is "${candidate.title}". DO NOT invent or use a different project name in the description. If you need to reference the project, use "${candidate.title}" exactly as provided.`,
+      customInstructions: `${customInstructions}\n\nEXPAND THIS CANDIDATE IDEA:\nTitle: ${candidate.title}\n${candidate.idea}\n\nProvide a more detailed version with enhanced features, technical details, and implementation strategy.\n\nCRITICAL INSTRUCTIONS:\n1. The project name is "${candidate.title}". DO NOT invent or use a different project name in the description. If you need to reference the project, use "${candidate.title}" exactly as provided.\n2. IGNORE the event title for topic selection. Focus 100% on expanding THIS idea: "${candidate.title}".\n3. DO NOT force event title keywords into the description unless the user's idea explicitly includes them.\n4. User Intent > Event Name ALWAYS. Stay true to the idea provided.`,
     });
 
     return result;
