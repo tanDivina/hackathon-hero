@@ -39,6 +39,10 @@ export const IdeaGenerator: React.FC<IdeaGeneratorProps> = ({
   const [expandedIdeaName, setExpandedIdeaName] = useState('');
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
   const [isExpanding, setIsExpanding] = useState(false);
+  const [isEditingIdea, setIsEditingIdea] = useState(false);
+  const [editedIdeaText, setEditedIdeaText] = useState('');
+  const [customIdea, setCustomIdea] = useState('');
+  const [isExpandingCustom, setIsExpandingCustom] = useState(false);
 
   const loadSavedData = async () => {
     if (isExpanding) return;
@@ -176,6 +180,58 @@ export const IdeaGenerator: React.FC<IdeaGeneratorProps> = ({
     setSelectedCandidateId(null);
   };
 
+  const handleExpandCustomIdea = async () => {
+    if (!customIdea.trim() || !projectId) return;
+
+    setIsExpandingCustom(true);
+    setIsExpanding(true);
+
+    try {
+      const customCandidateData: CandidateIdeaData = {
+        title: customIdea.trim().substring(0, 50),
+        hook: '',
+        idea: customIdea.trim(),
+        category: 'Custom',
+        reasoning: '',
+        sponsorAlignment: '',
+        complexity: 'Medium',
+      };
+
+      const expanded = await onExpandCandidate(customCandidateData);
+
+      const tempId = crypto.randomUUID();
+      const savedIdea = await databaseService.expandCandidateIdea(projectId, tempId, {
+        idea_text: expanded.idea,
+        category: expanded.category,
+        reasoning: expanded.reasoning,
+        sponsor_alignment: expanded.sponsorAlignment,
+        idea_name: customIdea.trim().substring(0, 50),
+      });
+
+      if (savedIdea) {
+        setExpandedIdea({
+          idea: savedIdea.idea_text,
+          category: savedIdea.category,
+          reasoning: savedIdea.reasoning,
+          sponsorAlignment: savedIdea.sponsor_alignment,
+        });
+        setExpandedIdeaName(savedIdea.idea_name || '');
+        setSelectedCandidateId(tempId);
+      } else {
+        setExpandedIdea(expanded);
+        setExpandedIdeaName(customIdea.trim().substring(0, 50));
+      }
+
+      setViewMode('expanded');
+      setCustomIdea('');
+    } catch (error) {
+      console.error('Custom idea expansion failed:', error);
+    } finally {
+      setIsExpandingCustom(false);
+      setIsExpanding(false);
+    }
+  };
+
   const getComplexityColor = (complexity: string) => {
     switch (complexity) {
       case 'Low': return 'text-green-500 border-green-500/30 bg-green-500/10';
@@ -274,6 +330,48 @@ export const IdeaGenerator: React.FC<IdeaGeneratorProps> = ({
                     </>
                   )}
                 </button>
+
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-800"></div>
+                  </div>
+                  <div className="relative flex justify-center text-xs">
+                    <span className="bg-gray-950 px-2 text-gray-600 font-mono">OR</span>
+                  </div>
+                </div>
+
+                <div className="space-y-3 p-4 border border-gray-800 bg-black/30">
+                  <div className="flex items-center gap-2">
+                    <Zap size={16} className="text-accent-yellow" />
+                    <span className="text-xs text-gray-400 font-mono">Have Your Own Idea?</span>
+                  </div>
+                  <textarea
+                    value={customIdea}
+                    onChange={(e) => setCustomIdea(e.target.value)}
+                    placeholder="Enter a short concept or rough idea (e.g., 'blockchain voting system', 'AI music generator')..."
+                    className="w-full bg-gray-900 border border-gray-700 text-white text-sm p-3 rounded focus:border-accent-yellow focus:outline-none min-h-[60px] resize-none"
+                  />
+                  <button
+                    onClick={handleExpandCustomIdea}
+                    disabled={!customIdea.trim() || isExpandingCustom}
+                    className="w-full bg-black/50 border border-gray-800 hover:border-accent-yellow text-gray-400 hover:text-accent-yellow font-bold py-2 text-xs tracking-wide transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {isExpandingCustom ? (
+                      <>
+                        <RefreshCw size={14} className="animate-spin" />
+                        EXPANDING YOUR IDEA...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles size={14} />
+                        EXPAND MY IDEA
+                      </>
+                    )}
+                  </button>
+                  <p className="text-xs text-gray-600">
+                    AI will expand your concept into a full project plan aligned with the hackathon.
+                  </p>
+                </div>
               </>
             )}
 
@@ -401,10 +499,47 @@ export const IdeaGenerator: React.FC<IdeaGeneratorProps> = ({
                 </div>
 
                 <div className="border-l-2 border-accent-yellow pl-4">
-                  <p className="text-xs text-gray-500 font-mono uppercase tracking-wider mb-2">
-                    Full Project Concept
-                  </p>
-                  <p className="text-sm text-gray-300 leading-relaxed">{expandedIdea.idea}</p>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs text-gray-500 font-mono uppercase tracking-wider">
+                      Full Project Concept
+                    </p>
+                    <button
+                      onClick={() => {
+                        setIsEditingIdea(!isEditingIdea);
+                        if (!isEditingIdea) {
+                          setEditedIdeaText(expandedIdea.idea);
+                        }
+                      }}
+                      className="text-xs text-gray-500 hover:text-accent-yellow transition-colors font-mono"
+                    >
+                      {isEditingIdea ? 'CANCEL' : 'EDIT'}
+                    </button>
+                  </div>
+                  {isEditingIdea ? (
+                    <div className="space-y-2">
+                      <textarea
+                        value={editedIdeaText}
+                        onChange={(e) => setEditedIdeaText(e.target.value)}
+                        className="w-full bg-gray-900 border border-gray-700 text-white text-sm p-3 rounded focus:border-accent-yellow focus:outline-none min-h-[120px] resize-none"
+                      />
+                      <button
+                        onClick={() => {
+                          setExpandedIdea({ ...expandedIdea, idea: editedIdeaText });
+                          setIsEditingIdea(false);
+                          if (projectId && selectedCandidateId) {
+                            databaseService.updateIdea(selectedCandidateId, {
+                              idea: editedIdeaText,
+                            });
+                          }
+                        }}
+                        className="px-4 py-2 bg-accent-yellow text-black font-bold text-xs hover:bg-accent-green transition-colors"
+                      >
+                        SAVE CHANGES
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-300 leading-relaxed">{expandedIdea.idea}</p>
+                  )}
                 </div>
 
                 <div className="border-l-2 border-accent-yellow pl-4">
