@@ -433,10 +433,18 @@ function HackathonWizard() {
     const customInstructions = project?.custom_instructions || '';
 
     if (scriptType === 'intro') {
+      console.log('🎯 Generating intro script for:', idea);
       const result = await aiService.generateIntroPitch(idea, yourName, customInstructions);
+      console.log('✅ Intro script generated:', {
+        hasWho: !!result.who,
+        hasWhat: !!result.what,
+        hasWhy: !!result.why,
+        who: result.who?.substring(0, 50),
+      });
 
       if (currentProject) {
         setIsSaving(true);
+        console.log('💾 Saving intro script to DB for project:', currentProject.id);
         const saved = await databaseService.savePitchScript(currentProject.id, idea, {
           problem: '',
           solution: '',
@@ -453,7 +461,13 @@ function HackathonWizard() {
           intro_full_script: result.fullScript,
           your_name: yourName || '',
         });
+        console.log('✅ Intro script saved to DB:', {
+          saved: !!saved,
+          scriptType: saved?.script_type,
+          hasWho: !!saved?.intro_who,
+        });
         setCurrentPitchScript(saved);
+        console.log('✅ setCurrentPitchScript called with saved data');
         setIsSaving(false);
       }
 
