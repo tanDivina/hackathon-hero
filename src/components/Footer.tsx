@@ -40,9 +40,9 @@ export const Footer: React.FC = () => {
   };
 
   return (
-    <footer className="bg-black border-t border-gray-800 mt-20">
-      <div className="max-w-7xl mx-auto px-6 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+    <footer className="bg-black border-t border-gray-800 mt-12 sm:mt-20">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12">
           <div>
             <h3 className="text-xl font-black text-white mb-4 uppercase tracking-tight">
               Stay Updated
@@ -105,7 +105,7 @@ export const Footer: React.FC = () => {
               Follow along for dev content, hackathon tips, and behind-the-scenes of building HackathonHero.
             </p>
 
-            <div className="flex gap-4">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
               <a
                 href="https://www.youtube.com/@DorienVibecodes"
                 target="_blank"
