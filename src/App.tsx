@@ -598,9 +598,9 @@ function HackathonWizard() {
                   </button>
                   <button
                     onClick={() => setShowProModal(true)}
-                    className="px-3 sm:px-6 py-2 sm:py-2.5 text-xs sm:text-sm font-bold tracking-wide transition-all rounded border border-gray-700 text-gray-400 hover:border-gray-500 hover:text-white flex items-center gap-1 sm:gap-2"
+                    className="px-4 sm:px-6 py-2.5 text-xs sm:text-sm font-bold tracking-wide transition-all rounded border border-gray-700 text-white hover:border-accent-yellow hover:text-accent-yellow flex items-center gap-2 whitespace-nowrap min-w-[80px] sm:min-w-0"
                   >
-                    <Lock size={14} className="sm:w-4 sm:h-4" />
+                    <Lock size={16} className="flex-shrink-0" />
                     <span className="hidden sm:inline">UNLOCK PRO</span>
                     <span className="sm:hidden">PRO</span>
                   </button>
