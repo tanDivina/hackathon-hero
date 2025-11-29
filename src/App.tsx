@@ -757,6 +757,7 @@ function HackathonWizard() {
                   your_name: currentPitchScript?.your_name || '',
                   intro_full_script: '',
                   created_at: currentPitchScript?.created_at || new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
                 });
               }}
             />

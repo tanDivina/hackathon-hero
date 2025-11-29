@@ -51,6 +51,7 @@ export interface PitchScriptData {
   intro_full_script?: string;
   your_name?: string;
   created_at: string;
+  updated_at: string;
 }
 
 export interface VideoAssets {
