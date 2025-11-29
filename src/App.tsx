@@ -461,6 +461,10 @@ function HackathonWizard() {
         problem: '',
         solution: '',
         traction: '',
+        who: result.who,
+        what: result.what,
+        why: result.why,
+        fullScript: result.fullScript,
       };
     } else if (scriptType === 'demo') {
       const rulesData = currentProject ? await databaseService.getRulesData(currentProject.id) : undefined;
