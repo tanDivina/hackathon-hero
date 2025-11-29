@@ -528,10 +528,13 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
       { text: pitchScript.who },
       { text: pitchScript.what || '' },
       { text: pitchScript.why || '' },
-    ] : pitchScript.script_type === 'demo' && pitchScript.problem ? [
-      { text: pitchScript.problem },
-      { text: pitchScript.solution },
-      { text: pitchScript.traction },
+    ] : pitchScript.script_type === 'demo' && pitchScript.requirements ? [
+      { text: pitchScript.problem || '' },
+      { text: pitchScript.requirements },
+      { text: pitchScript.solution || '' },
+      { text: pitchScript.tools || '' },
+      { text: pitchScript.realworld_use || '' },
+      { text: pitchScript.traction || '' },
     ] : pitchScript.problem ? [
       { text: pitchScript.problem },
       { text: pitchScript.solution },
