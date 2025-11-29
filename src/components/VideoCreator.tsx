@@ -523,6 +523,22 @@ export const VideoCreator: React.FC<VideoCreatorProps> = ({ isPro, projectId, on
     a.click();
   };
 
+  // Debug logging
+  useEffect(() => {
+    console.log('🎬 VideoCreator pitchScript updated:', {
+      hasPitchScript: !!pitchScript,
+      scriptType: pitchScript?.script_type,
+      hasWho: !!pitchScript?.who,
+      hasWhat: !!pitchScript?.what,
+      hasWhy: !!pitchScript?.why,
+      hasProblem: !!pitchScript?.problem,
+      hasRequirements: !!pitchScript?.requirements,
+      who: pitchScript?.who?.substring(0, 50),
+      what: pitchScript?.what?.substring(0, 50),
+      why: pitchScript?.why?.substring(0, 50),
+    });
+  }, [pitchScript]);
+
   const sections = pitchScript ? (
     pitchScript.script_type === 'intro' && pitchScript.who ? [
       { text: pitchScript.who },

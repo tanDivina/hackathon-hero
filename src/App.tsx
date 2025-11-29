@@ -752,18 +752,27 @@ function HackathonWizard() {
               projectId={currentProject?.id}
               projectName={currentIdeaName || ''}
               onUpgradeClick={() => setShowProModal(true)}
-              pitchScript={currentPitchScript ? {
-                problem: currentPitchScript.problem,
-                solution: currentPitchScript.solution,
-                traction: currentPitchScript.traction,
-                script_type: currentPitchScript.script_type,
-                requirements: currentPitchScript.demo_requirements,
-                tools: currentPitchScript.demo_tools,
-                realworld_use: currentPitchScript.demo_realworld_use,
-                who: currentPitchScript.intro_who,
-                what: currentPitchScript.intro_what,
-                why: currentPitchScript.intro_why,
-              } : undefined}
+              pitchScript={(() => {
+                console.log('📝 App.tsx currentPitchScript:', {
+                  hasScript: !!currentPitchScript,
+                  scriptType: currentPitchScript?.script_type,
+                  intro_who: currentPitchScript?.intro_who?.substring(0, 50),
+                  intro_what: currentPitchScript?.intro_what?.substring(0, 50),
+                  intro_why: currentPitchScript?.intro_why?.substring(0, 50),
+                });
+                return currentPitchScript ? {
+                  problem: currentPitchScript.problem,
+                  solution: currentPitchScript.solution,
+                  traction: currentPitchScript.traction,
+                  script_type: currentPitchScript.script_type,
+                  requirements: currentPitchScript.demo_requirements,
+                  tools: currentPitchScript.demo_tools,
+                  realworld_use: currentPitchScript.demo_realworld_use,
+                  who: currentPitchScript.intro_who,
+                  what: currentPitchScript.intro_what,
+                  why: currentPitchScript.intro_why,
+                } : undefined;
+              })()}
             />
           </div>
         </div>
