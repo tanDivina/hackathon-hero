@@ -38,26 +38,6 @@ export const RulesChat: React.FC<RulesChatProps> = ({
   const [rulesContext, setRulesContext] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (projectId && isPro) {
-      console.log('RulesChat: Loading data for project', projectId, 'isPro:', isPro);
-      loadRulesContext().catch(err => console.error('Failed to load rules context:', err));
-      loadChatHistory().catch(err => console.error('Failed to load chat history:', err));
-    } else {
-      console.log('RulesChat: Clearing state. projectId:', projectId, 'isPro:', isPro);
-      setMessages([]);
-      setRulesContext('');
-    }
-  }, [projectId, isPro, loadRulesContext, loadChatHistory]);
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
-  };
-
   const loadRulesContext = useCallback(async () => {
     if (!projectId) {
       console.log('RulesChat: No projectId, skipping rules context load');
@@ -116,6 +96,26 @@ ${project.custom_instructions}
       timestamp: new Date(msg.created_at)
     })));
   }, [projectId]);
+
+  useEffect(() => {
+    if (projectId && isPro) {
+      console.log('RulesChat: Loading data for project', projectId, 'isPro:', isPro);
+      loadRulesContext().catch(err => console.error('Failed to load rules context:', err));
+      loadChatHistory().catch(err => console.error('Failed to load chat history:', err));
+    } else {
+      console.log('RulesChat: Clearing state. projectId:', projectId, 'isPro:', isPro);
+      setMessages([]);
+      setRulesContext('');
+    }
+  }, [projectId, isPro, loadRulesContext, loadChatHistory]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+  };
 
   const handleSendMessage = async () => {
     if (!inputValue.trim() || !isPro || !projectId || !rulesContext) return;
