@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { MessageCircle, Send, Sparkles, Bot } from 'lucide-react';
 import { CyberCard } from './CyberCard';
 import { databaseService } from '../services/database';
@@ -40,12 +40,15 @@ export const RulesChat: React.FC<RulesChatProps> = ({
 
   useEffect(() => {
     if (projectId && isPro) {
-      loadRulesContext();
-      loadChatHistory();
+      console.log('RulesChat: Loading data for project', projectId, 'isPro:', isPro);
+      loadRulesContext().catch(err => console.error('Failed to load rules context:', err));
+      loadChatHistory().catch(err => console.error('Failed to load chat history:', err));
     } else {
+      console.log('RulesChat: Clearing state. projectId:', projectId, 'isPro:', isPro);
       setMessages([]);
+      setRulesContext('');
     }
-  }, [projectId, isPro]);
+  }, [projectId, isPro, loadRulesContext, loadChatHistory]);
 
   useEffect(() => {
     scrollToBottom();
@@ -55,10 +58,17 @@ export const RulesChat: React.FC<RulesChatProps> = ({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
   };
 
-  const loadRulesContext = async () => {
-    if (!projectId) return;
+  const loadRulesContext = useCallback(async () => {
+    if (!projectId) {
+      console.log('RulesChat: No projectId, skipping rules context load');
+      return;
+    }
+
+    console.log('RulesChat: Loading rules context for project', projectId);
     const rulesData = await databaseService.getRulesData(projectId);
     const project = await databaseService.getProject(projectId);
+
+    console.log('RulesChat: Rules data loaded:', !!rulesData, 'Project:', !!project);
 
     if (rulesData) {
       let context = `
@@ -81,20 +91,31 @@ ${project.custom_instructions}
 (These notes from sponsor Q&As or livestreams should be prioritized when answering questions)`;
       }
 
+      console.log('RulesChat: Rules context set, length:', context.length);
       setRulesContext(context);
+    } else {
+      console.log('RulesChat: No rules data found, clearing context');
+      setRulesContext('');
     }
-  };
+  }, [projectId]);
 
-  const loadChatHistory = async () => {
-    if (!projectId) return;
+  const loadChatHistory = useCallback(async () => {
+    if (!projectId) {
+      console.log('RulesChat: No projectId, skipping chat history load');
+      return;
+    }
+
+    console.log('RulesChat: Loading chat history for project', projectId);
     const history = await databaseService.getChatHistory(projectId);
+    console.log('RulesChat: Chat history loaded:', history.length, 'messages');
+
     setMessages(history.map(msg => ({
       id: msg.id,
       role: msg.role as 'user' | 'assistant',
       content: msg.content,
       timestamp: new Date(msg.created_at)
     })));
-  };
+  }, [projectId]);
 
   const handleSendMessage = async () => {
     if (!inputValue.trim() || !isPro || !projectId || !rulesContext) return;
