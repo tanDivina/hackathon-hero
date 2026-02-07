@@ -25,24 +25,24 @@ export const TeamPanel: React.FC<TeamPanelProps> = ({ projectId, projectName }) 
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setCurrentUserId(user?.id || null);
+    };
+
+    const loadMembers = async () => {
+      if (!projectId) return;
+      setIsLoading(true);
+      const projectMembers = await databaseService.getProjectMembers(projectId);
+      setMembers(projectMembers);
+      setIsLoading(false);
+    };
+
     checkAuth();
     if (projectId) {
       loadMembers();
     }
   }, [projectId]);
-
-  const checkAuth = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    setCurrentUserId(user?.id || null);
-  };
-
-  const loadMembers = async () => {
-    if (!projectId) return;
-    setIsLoading(true);
-    const projectMembers = await databaseService.getProjectMembers(projectId);
-    setMembers(projectMembers);
-    setIsLoading(false);
-  };
 
   const createInviteLink = async () => {
     if (!projectId) return;
