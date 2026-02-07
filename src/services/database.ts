@@ -109,6 +109,13 @@ export interface PaymentData {
   created_at: string;
 }
 
+export interface ChecklistItem {
+  id: string;
+  text: string;
+  completed: boolean;
+  source: 'manual' | 'auto';
+}
+
 const getSessionId = (): string => {
   let sessionId = localStorage.getItem('hackathon_session_id');
   if (!sessionId) {
@@ -907,6 +914,54 @@ export const databaseService = {
     }
 
     return { success: !!data };
+  },
+
+  async trackUsageEvent(eventName: string, projectId?: string, metadata?: Record<string, unknown>): Promise<void> {
+    console.log('Usage event:', eventName, projectId, metadata);
+  },
+
+  async saveRevision(projectId: string, contentType: string, content: Record<string, unknown>): Promise<void> {
+    console.log('Saving revision:', projectId, contentType, Object.keys(content));
+  },
+
+  async getRevisionHistory(projectId: string): Promise<Array<{ id: string; content_type: string; content: Record<string, unknown>; created_at: string }>> {
+    return [];
+  },
+
+  async getProjectMembers(projectId: string): Promise<Array<{ id: string; email: string; role: 'owner' | 'member'; joined_at: string }>> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+
+    return [{
+      id: user.id,
+      email: user.email || 'you@example.com',
+      role: 'owner',
+      joined_at: new Date().toISOString(),
+    }];
+  },
+
+  async createInviteLink(projectId: string): Promise<string | null> {
+    const token = Math.random().toString(36).substring(2, 15);
+    console.log('Created invite link for project:', projectId, token);
+    return token;
+  },
+
+  async getChecklist(projectId: string): Promise<ChecklistItem[]> {
+    const key = `checklist_${projectId}`;
+    const saved = localStorage.getItem(key);
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  },
+
+  async saveChecklist(projectId: string, items: ChecklistItem[]): Promise<void> {
+    const key = `checklist_${projectId}`;
+    localStorage.setItem(key, JSON.stringify(items));
   },
 };
 
