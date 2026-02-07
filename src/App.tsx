@@ -25,6 +25,10 @@ import { ProfilePage } from './pages/ProfilePage';
 import { AuthGuard } from './components/AuthGuard';
 import { exportUtils } from './utils/exportUtils';
 import { supabase } from './lib/supabase';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { SubmissionChecklist } from './components/SubmissionChecklist';
+import { TeamPanel } from './components/TeamPanel';
+import { RevisionHistory } from './components/RevisionHistory';
 
 const EXIT_INTENT_KEY = 'hackathon_hero_exit_intent_shown';
 
@@ -44,6 +48,8 @@ function HackathonWizard() {
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [optimizerReloadKey, setOptimizerReloadKey] = useState(0);
   const [scriptReloadKey, setScriptReloadKey] = useState(0);
+  const [rulesText, setRulesText] = useState('');
+  const [revisionReloadKey, setRevisionReloadKey] = useState(0);
 
   const handleExitIntent = useCallback(() => {
     if (isPro) return;
@@ -115,8 +121,8 @@ function HackathonWizard() {
 
     const rulesData = await databaseService.getRulesData(currentProject.id);
     setHasRules(!!rulesData);
+    setRulesText(rulesData?.rules_text || '');
 
-    // Extract deadline from both rules and intel
     await extractDeadline(currentProject.id, rulesData);
   };
 
@@ -297,10 +303,12 @@ function HackathonWizard() {
           eventType: result.eventType,
         });
         setHasRules(true);
+        setRulesText(rulesText);
 
         const rulesData = await databaseService.getRulesData(currentProject.id);
         await extractDeadline(currentProject.id, rulesData);
 
+        databaseService.trackUsageEvent('rules_parsed', currentProject.id);
         setIsSaving(false);
       }
 
@@ -350,6 +358,10 @@ function HackathonWizard() {
       sponsor_alignment: result.sponsorAlignment,
     });
     setIsSaving(false);
+
+    databaseService.trackUsageEvent('idea_generated', currentProject.id);
+    databaseService.saveRevision(currentProject.id, 'idea', { idea_text: result.idea, category: result.category, reasoning: result.reasoning });
+    setRevisionReloadKey(prev => prev + 1);
 
     return result;
   };
@@ -431,10 +443,15 @@ function HackathonWizard() {
         result.wordCount
       );
 
-      // Trigger reload in PitchScript
       setScriptReloadKey(prev => prev + 1);
 
       setIsSaving(false);
+    }
+
+    databaseService.trackUsageEvent('prompt_optimized', currentProject?.id);
+    if (currentProject) {
+      databaseService.saveRevision(currentProject.id, 'prompt', { optimized_prompt: result.prompt, word_count: result.wordCount });
+      setRevisionReloadKey(prev => prev + 1);
     }
 
     return result;
@@ -481,6 +498,10 @@ function HackathonWizard() {
         setCurrentPitchScript(saved);
         console.log('✅ setCurrentPitchScript called with saved data');
         setIsSaving(false);
+
+        databaseService.trackUsageEvent('script_generated', currentProject.id, { type: 'intro' });
+        databaseService.saveRevision(currentProject.id, 'intro_script', { who: result.who, what: result.what, why: result.why });
+        setRevisionReloadKey(prev => prev + 1);
       }
 
       return {
@@ -525,6 +546,10 @@ function HackathonWizard() {
         });
         setCurrentPitchScript(saved);
         setIsSaving(false);
+
+        databaseService.trackUsageEvent('script_generated', currentProject.id, { type: 'demo' });
+        databaseService.saveRevision(currentProject.id, 'demo_script', { problem: result.problem, solution: result.solution, traction: result.traction });
+        setRevisionReloadKey(prev => prev + 1);
       }
 
       return {
@@ -555,6 +580,10 @@ function HackathonWizard() {
         });
         setCurrentPitchScript(saved);
         setIsSaving(false);
+
+        databaseService.trackUsageEvent('script_generated', currentProject.id, { type: 'pitch' });
+        databaseService.saveRevision(currentProject.id, 'pitch_script', { problem: result.problem, solution: result.solution, traction: result.traction });
+        setRevisionReloadKey(prev => prev + 1);
       }
 
       return result;
@@ -805,6 +834,25 @@ function HackathonWizard() {
                 } : undefined;
               })()}
             />
+            <ErrorBoundary fallbackTitle="Submission Checklist encountered an error">
+              <SubmissionChecklist
+                projectId={currentProject?.id}
+                hasRules={hasRules}
+                rulesText={rulesText}
+              />
+            </ErrorBoundary>
+            <ErrorBoundary fallbackTitle="Team Panel encountered an error">
+              <TeamPanel
+                projectId={currentProject?.id}
+                projectName={currentProject?.name}
+              />
+            </ErrorBoundary>
+            <ErrorBoundary fallbackTitle="Revision History encountered an error">
+              <RevisionHistory
+                projectId={currentProject?.id}
+                key={revisionReloadKey}
+              />
+            </ErrorBoundary>
           </div>
         </div>
       </div>
