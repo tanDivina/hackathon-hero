@@ -1,7 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { FileText, Link, Sparkles } from 'lucide-react';
 import { CyberCard } from './CyberCard';
 import { databaseService } from '../services/database';
+import { GenerationProgress, useGenerationProgress } from './GenerationProgress';
+import { useAutosave } from '../hooks/useAutosave';
+import { SaveIndicator } from './SaveIndicator';
 
 interface ParsedData {
   deadline: string;
@@ -28,6 +31,22 @@ export const RulesParser: React.FC<RulesParserProps> = ({ onParse, onParseFromUr
   const [insiderIntel, setInsiderIntel] = useState('');
   const [isSavingIntel, setIsSavingIntel] = useState(false);
   const [intelSaved, setIntelSaved] = useState(false);
+
+  const handleAutoSaveIntel = useCallback(async (value: string) => {
+    if (!projectId) return;
+    await databaseService.updateProject(projectId, { custom_instructions: value });
+    if (onIntelSaved) await onIntelSaved();
+  }, [projectId, onIntelSaved]);
+
+  const intelSaveStatus = useAutosave(insiderIntel, handleAutoSaveIntel, 2000, !!projectId && !!parsedData);
+
+  const analyzeProgress = useGenerationProgress([
+    'Reading hackathon documentation',
+    'Extracting deadlines and dates',
+    'Identifying sponsors and partners',
+    'Analyzing judging criteria',
+    'Saving parsed data',
+  ]);
 
   useEffect(() => {
     if (projectId) {
@@ -88,22 +107,32 @@ export const RulesParser: React.FC<RulesParserProps> = ({ onParse, onParseFromUr
     if (inputMode === 'url') {
       if (!hackathonUrl.trim()) return;
       setIsAnalyzing(true);
+      analyzeProgress.start();
       try {
+        const advanceInterval = setInterval(() => analyzeProgress.advance(), 1800);
         const result = await onParseFromUrl(hackathonUrl);
+        clearInterval(advanceInterval);
+        analyzeProgress.complete();
         setParsedData(result);
       } catch (error) {
         console.error('URL fetch failed:', error);
+        analyzeProgress.reset();
       } finally {
         setIsAnalyzing(false);
       }
     } else {
       if (!rulesText.trim()) return;
       setIsAnalyzing(true);
+      analyzeProgress.start();
       try {
+        const advanceInterval = setInterval(() => analyzeProgress.advance(), 1500);
         const result = await onParse(rulesText);
+        clearInterval(advanceInterval);
+        analyzeProgress.complete();
         setParsedData(result);
       } catch (error) {
         console.error('Analysis failed:', error);
+        analyzeProgress.reset();
       } finally {
         setIsAnalyzing(false);
       }
@@ -182,6 +211,8 @@ export const RulesParser: React.FC<RulesParserProps> = ({ onParse, onParseFromUr
           {isAnalyzing ? 'ANALYZING...' : 'ANALYZE RULES'}
         </button>
 
+        <GenerationProgress steps={analyzeProgress.steps} isVisible={analyzeProgress.isActive} />
+
         {parsedData && (
           <div className="mt-6 space-y-3 pt-6 border-t border-gray-800">
             <div className="space-y-2">
@@ -238,32 +269,21 @@ export const RulesParser: React.FC<RulesParserProps> = ({ onParse, onParseFromUr
 
         {parsedData && (
           <div className="mt-6 pt-6 border-t border-gray-800 space-y-3">
-            <div className="space-y-2">
+            <div className="flex items-center justify-between">
               <p className="text-xs text-gray-500 font-mono uppercase tracking-wider">
                 Insider Intel / Livestream Notes
               </p>
-              <p className="text-xs text-gray-400 leading-relaxed">
-                Paste notes from sponsor Q&As or livestreams. AI will prioritize these insights when generating ideas and scripts.
-              </p>
+              <SaveIndicator status={intelSaveStatus} />
             </div>
+            <p className="text-xs text-gray-400 leading-relaxed">
+              Paste notes from sponsor Q&As or livestreams. AI will prioritize these insights when generating ideas and scripts. Changes save automatically.
+            </p>
             <textarea
               value={insiderIntel}
               onChange={(e) => setInsiderIntel(e.target.value)}
               placeholder="e.g., 'Sponsor emphasized humor and creativity', 'Looking for solutions that help students', 'Prefer mobile-first approaches'"
               className="w-full h-24 bg-black border border-gray-800 p-4 text-gray-300 text-sm placeholder-gray-600 focus:border-accent-cyan focus:outline-none transition-colors resize-none font-mono"
             />
-            <button
-              onClick={handleSaveInsiderIntel}
-              disabled={isSavingIntel || !projectId}
-              className="w-full bg-accent-cyan/20 border border-accent-cyan/50 text-accent-cyan font-bold py-2 text-sm tracking-wide hover:bg-accent-cyan/30 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-            >
-              {isSavingIntel ? 'SAVING...' : intelSaved ? 'SAVED!' : 'SAVE INTEL'}
-            </button>
-            {intelSaved && (
-              <p className="text-xs text-accent-cyan text-center font-mono">
-                Intel saved! AI will use this context in idea generation and chat.
-              </p>
-            )}
           </div>
         )}
       </div>

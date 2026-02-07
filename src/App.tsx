@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Lock, Save } from 'lucide-react';
+import { useToast } from './components/Toast';
 import { RulesParser } from './components/RulesParser';
 import { IdeaGenerator } from './components/IdeaGenerator';
 import { PromptOptimizer } from './components/PromptOptimizer';
@@ -29,6 +30,7 @@ const EXIT_INTENT_KEY = 'hackathon_hero_exit_intent_shown';
 
 function HackathonWizard() {
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [isPro, setIsPro] = useState(false);
   const [showProModal, setShowProModal] = useState(false);
   const [showExitIntent, setShowExitIntent] = useState(false);
@@ -281,33 +283,43 @@ function HackathonWizard() {
   };
 
   const handleParseRules = async (rulesText: string) => {
-    const result = await aiService.parseRules(rulesText);
+    try {
+      const result = await aiService.parseRules(rulesText);
 
-    if (currentProject) {
-      setIsSaving(true);
-      await databaseService.saveRulesData(currentProject.id, rulesText, {
-        deadline: result.deadline,
-        sponsors: result.sponsors,
-        judgingCriteria: result.judgingCriteria,
-        prizes: result.prizes,
-        theme: result.theme,
-        eventType: result.eventType,
-      });
-      setHasRules(true);
+      if (currentProject) {
+        setIsSaving(true);
+        await databaseService.saveRulesData(currentProject.id, rulesText, {
+          deadline: result.deadline,
+          sponsors: result.sponsors,
+          judgingCriteria: result.judgingCriteria,
+          prizes: result.prizes,
+          theme: result.theme,
+          eventType: result.eventType,
+        });
+        setHasRules(true);
 
-      // Extract deadline from both rules and intel
-      const rulesData = await databaseService.getRulesData(currentProject.id);
-      await extractDeadline(currentProject.id, rulesData);
+        const rulesData = await databaseService.getRulesData(currentProject.id);
+        await extractDeadline(currentProject.id, rulesData);
 
-      setIsSaving(false);
+        setIsSaving(false);
+      }
+
+      showToast('Rules analyzed successfully', 'success');
+      return result;
+    } catch (error) {
+      showToast('Failed to analyze rules. Please try again.', 'error');
+      throw error;
     }
-
-    return result;
   };
 
   const handleParseRulesFromUrl = async (url: string) => {
-    const textContent = await aiService.fetchUrlContent(url);
-    return await handleParseRules(textContent);
+    try {
+      const textContent = await aiService.fetchUrlContent(url);
+      return await handleParseRules(textContent);
+    } catch (error) {
+      showToast('Failed to fetch URL content. Check the link and try again.', 'error');
+      throw error;
+    }
   };
 
   const handleGenerateIdea = async () => {
@@ -568,22 +580,27 @@ function HackathonWizard() {
       ideaName: currentIdeaName,
     };
 
-    switch (format) {
-      case 'json':
-        exportUtils.exportAsJSON(exportData);
-        break;
-      case 'markdown':
-        exportUtils.exportAsMarkdown(exportData);
-        break;
-      case 'pdf':
-        exportUtils.exportAsPDF(exportData);
-        break;
-      case 'text':
-        exportUtils.exportAsText(exportData);
-        break;
-      case 'docx':
-        exportUtils.exportAsDocx(exportData);
-        break;
+    try {
+      switch (format) {
+        case 'json':
+          exportUtils.exportAsJSON(exportData);
+          break;
+        case 'markdown':
+          exportUtils.exportAsMarkdown(exportData);
+          break;
+        case 'pdf':
+          exportUtils.exportAsPDF(exportData);
+          break;
+        case 'text':
+          exportUtils.exportAsText(exportData);
+          break;
+        case 'docx':
+          exportUtils.exportAsDocx(exportData);
+          break;
+      }
+      showToast(`Exported as ${format.toUpperCase()}`, 'success');
+    } catch (error) {
+      showToast('Export failed. Please try again.', 'error');
     }
   };
 
@@ -599,7 +616,7 @@ function HackathonWizard() {
 
             <div className="flex items-center gap-2 sm:gap-4">
               {isSaving && (
-                <span className="flex items-center gap-2 text-accent-yellow text-xs font-mono">
+                <span className="flex items-center gap-2 text-accent-yellow text-xs font-mono animate-fadeIn">
                   <Save size={14} className="animate-pulse" />
                   SAVING...
                 </span>

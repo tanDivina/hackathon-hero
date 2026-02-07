@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Sparkles, Copy, Check, Download } from 'lucide-react';
 import { CyberCard } from './CyberCard';
 import { databaseService } from '../services/database';
+import { GenerationProgress, useGenerationProgress } from './GenerationProgress';
 
 interface PromptOptimizerProps {
   onOptimize: (idea: string) => Promise<{ prompt: string; wordCount: number }>;
@@ -16,6 +17,12 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({ onOptimize, is
   const [optimizedPrompt, setOptimizedPrompt] = useState('');
   const [wordCount, setWordCount] = useState(0);
   const [copied, setCopied] = useState(false);
+  const promptProgress = useGenerationProgress([
+    'Analyzing project requirements',
+    'Selecting optimal tech stack',
+    'Structuring technical prompt',
+    'Optimizing for AI builders',
+  ]);
 
   useEffect(() => {
     loadSavedData();
@@ -48,12 +55,17 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({ onOptimize, is
     if (!idea.trim()) return;
 
     setIsOptimizing(true);
+    promptProgress.start();
     try {
+      const advanceInterval = setInterval(() => promptProgress.advance(), 1800);
       const result = await onOptimize(idea);
+      clearInterval(advanceInterval);
+      promptProgress.complete();
       setOptimizedPrompt(result.prompt);
       setWordCount(result.wordCount);
     } catch (error) {
       console.error('Optimization failed:', error);
+      promptProgress.reset();
     } finally {
       setIsOptimizing(false);
     }
@@ -100,6 +112,8 @@ export const PromptOptimizer: React.FC<PromptOptimizerProps> = ({ onOptimize, is
         >
           {isOptimizing ? 'GENERATING...' : 'GENERATE PROMPT'}
         </button>
+
+        <GenerationProgress steps={promptProgress.steps} isVisible={promptProgress.isActive} />
 
         {optimizedPrompt && (
           <div className="mt-6 space-y-3 pt-6 border-t border-gray-800">

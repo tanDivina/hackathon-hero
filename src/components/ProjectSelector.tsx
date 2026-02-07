@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { FolderOpen, Plus, Trash2, Lock } from 'lucide-react';
 import { databaseService, Project } from '../services/database';
+import { ConfirmDialog } from './ConfirmDialog';
+import { useToast } from './Toast';
 
 interface ProjectSelectorProps {
   currentProject: Project | null;
@@ -19,6 +21,8 @@ export const ProjectSelector: React.FC<ProjectSelectorProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [showNewProject, setShowNewProject] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
+  const { showToast } = useToast();
 
   useEffect(() => {
     loadProjects();
@@ -36,7 +40,6 @@ export const ProjectSelector: React.FC<ProjectSelectorProps> = ({
   const handleCreateProject = async () => {
     if (!newProjectName.trim()) return;
 
-    // Check if user has reached the free limit (1 project)
     if (!isPro && projects.length >= 1) {
       setIsOpen(false);
       onUpgradeClick?.();
@@ -50,21 +53,31 @@ export const ProjectSelector: React.FC<ProjectSelectorProps> = ({
       setNewProjectName('');
       setShowNewProject(false);
       setIsOpen(false);
+      showToast('Project created', 'success');
     }
   };
 
-  const handleDeleteProject = async (id: string, e: React.MouseEvent) => {
+  const handleDeleteClick = (project: Project, e: React.MouseEvent) => {
     e.stopPropagation();
+    setDeleteTarget(project);
+  };
 
-    const success = await databaseService.deleteProject(id);
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+
+    const success = await databaseService.deleteProject(deleteTarget.id);
     if (success) {
-      const updatedProjects = projects.filter(p => p.id !== id);
+      const updatedProjects = projects.filter(p => p.id !== deleteTarget.id);
       setProjects(updatedProjects);
 
-      if (currentProject?.id === id && updatedProjects.length > 0) {
+      if (currentProject?.id === deleteTarget.id && updatedProjects.length > 0) {
         onProjectChange(updatedProjects[0]);
       }
+      showToast(`"${deleteTarget.name}" deleted`, 'success');
+    } else {
+      showToast('Failed to delete project', 'error');
     }
+    setDeleteTarget(null);
   };
 
   return (
@@ -163,7 +176,7 @@ export const ProjectSelector: React.FC<ProjectSelectorProps> = ({
                       </p>
                     </div>
                     <button
-                      onClick={(e) => handleDeleteProject(project.id, e)}
+                      onClick={(e) => handleDeleteClick(project, e)}
                       className="ml-2 p-1.5 text-gray-600 hover:text-red-500 transition-colors"
                     >
                       <Trash2 size={14} strokeWidth={1.5} />
@@ -175,6 +188,15 @@ export const ProjectSelector: React.FC<ProjectSelectorProps> = ({
           </div>
         </>
       )}
+
+      <ConfirmDialog
+        isOpen={!!deleteTarget}
+        title="Delete Project"
+        message={`This will permanently delete "${deleteTarget?.name}" and all its data including ideas, prompts, and scripts. This cannot be undone.`}
+        confirmLabel="Delete Project"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 };

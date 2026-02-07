@@ -3,6 +3,7 @@ import { Lightbulb, RefreshCw, ArrowRight, ArrowLeft, Sparkles, Zap, Target, Dow
 import { CyberCard } from './CyberCard';
 import { databaseService, IdeaData } from '../services/database';
 import { CandidateIdeaData } from '../services/aiService';
+import { GenerationProgress, useGenerationProgress } from './GenerationProgress';
 
 interface GeneratedIdea {
   idea: string;
@@ -43,6 +44,19 @@ export const IdeaGenerator: React.FC<IdeaGeneratorProps> = ({
   const [editedIdeaText, setEditedIdeaText] = useState('');
   const [customIdea, setCustomIdea] = useState('');
   const [isExpandingCustom, setIsExpandingCustom] = useState(false);
+  const candidateProgress = useGenerationProgress([
+    'Analyzing hackathon requirements',
+    'Brainstorming project concepts',
+    'Evaluating sponsor alignment',
+    'Ranking by complexity and fit',
+    'Finalizing 3 candidates',
+  ]);
+  const expandProgress = useGenerationProgress([
+    'Deep-diving into concept',
+    'Building technical architecture',
+    'Mapping sponsor integrations',
+    'Writing detailed project plan',
+  ]);
 
   const loadSavedData = async () => {
     if (isExpanding) return;
@@ -87,10 +101,13 @@ export const IdeaGenerator: React.FC<IdeaGeneratorProps> = ({
     setExpandedIdea(null);
     setExpandedIdeaName('');
     setSelectedCandidateId(null);
+    candidateProgress.start();
 
     try {
       const direction = usePersonalDirection ? userDirection.trim() : undefined;
+      const advanceInterval = setInterval(() => candidateProgress.advance(), 2000);
       const result = await onGenerateCandidates(direction);
+      clearInterval(advanceInterval);
 
       if (projectId) {
         const savedCandidates = await databaseService.saveCandidateIdeas(
@@ -109,9 +126,11 @@ export const IdeaGenerator: React.FC<IdeaGeneratorProps> = ({
         setCandidates(savedCandidates);
       }
 
+      candidateProgress.complete();
       setViewMode('candidates');
     } catch (error) {
       console.error('Generation failed:', error);
+      candidateProgress.reset();
     } finally {
       setIsGenerating(false);
     }
@@ -123,6 +142,7 @@ export const IdeaGenerator: React.FC<IdeaGeneratorProps> = ({
     setIsGenerating(true);
     setIsExpanding(true);
     setSelectedCandidateId(candidate.id);
+    expandProgress.start();
 
     try {
       const candidateData: CandidateIdeaData = {
@@ -135,7 +155,9 @@ export const IdeaGenerator: React.FC<IdeaGeneratorProps> = ({
         complexity: (candidate.complexity as 'Low' | 'Medium' | 'High') || 'Medium',
       };
 
+      const advanceInterval = setInterval(() => expandProgress.advance(), 2000);
       const expanded = await onExpandCandidate(candidateData);
+      clearInterval(advanceInterval);
 
       const savedIdea = await databaseService.expandCandidateIdea(projectId, candidate.id, {
         idea_text: expanded.idea,
@@ -158,9 +180,11 @@ export const IdeaGenerator: React.FC<IdeaGeneratorProps> = ({
         setExpandedIdeaName(candidate.candidate_title || '');
       }
 
+      expandProgress.complete();
       setViewMode('expanded');
     } catch (error) {
       console.error('Expansion failed:', error);
+      expandProgress.reset();
     } finally {
       setIsGenerating(false);
       setIsExpanding(false);
@@ -331,6 +355,8 @@ export const IdeaGenerator: React.FC<IdeaGeneratorProps> = ({
                   )}
                 </button>
 
+                <GenerationProgress steps={candidateProgress.steps} isVisible={candidateProgress.isActive} />
+
                 <div className="relative">
                   <div className="absolute inset-0 flex items-center">
                     <div className="w-full border-t border-gray-800"></div>
@@ -446,6 +472,8 @@ export const IdeaGenerator: React.FC<IdeaGeneratorProps> = ({
                     </div>
                   ))}
                 </div>
+
+                <GenerationProgress steps={expandProgress.steps} isVisible={expandProgress.isActive} />
 
                 <button
                   onClick={handleGenerateCandidates}

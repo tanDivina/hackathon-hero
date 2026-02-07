@@ -5,6 +5,7 @@ import { ScriptSection } from './ScriptSection';
 import { databaseService } from '../services/database';
 import { scriptTips } from '../utils/scriptTips';
 import { aiService } from '../services/aiService';
+import { GenerationProgress, useGenerationProgress } from './GenerationProgress';
 
 interface ScriptSections {
   problem: string;
@@ -54,6 +55,12 @@ export const PitchScript: React.FC<PitchScriptProps> = ({ onGenerate, isPro, pro
   const [generatingAlternatives, setGeneratingAlternatives] = useState<SectionKey | null>(null);
   const [alternatives, setAlternatives] = useState<Record<SectionKey, string[]>>({} as Record<SectionKey, string[]>);
   const [manualMode, setManualMode] = useState(false);
+  const scriptProgress = useGenerationProgress([
+    'Understanding project context',
+    'Crafting narrative structure',
+    'Writing script sections',
+    'Polishing delivery notes',
+  ]);
 
   useEffect(() => {
     loadSavedData();
@@ -201,14 +208,19 @@ export const PitchScript: React.FC<PitchScriptProps> = ({ onGenerate, isPro, pro
 
     setIsGenerating(true);
     setManualMode(false);
+    scriptProgress.start();
     try {
+      const advanceInterval = setInterval(() => scriptProgress.advance(), 2000);
       const result = await onGenerate(idea, scriptType, githubUrl || undefined, yourName || undefined);
+      clearInterval(advanceInterval);
+      scriptProgress.complete();
       setScript(result);
       setEditingSection(null);
       setEditedContent('');
       setAlternatives({} as Record<SectionKey, string[]>);
     } catch (error) {
       console.error('Generation failed:', error);
+      scriptProgress.reset();
     } finally {
       setIsGenerating(false);
     }
@@ -499,6 +511,8 @@ export const PitchScript: React.FC<PitchScriptProps> = ({ onGenerate, isPro, pro
             </button>
           </div>
         </div>
+
+        <GenerationProgress steps={scriptProgress.steps} isVisible={scriptProgress.isActive} />
 
         {script && (
           <div className="mt-6 space-y-4 pt-6 border-t border-gray-800">
