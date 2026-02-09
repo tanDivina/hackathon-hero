@@ -55,6 +55,8 @@ export const PitchScript: React.FC<PitchScriptProps> = ({ onGenerate, isPro, pro
   const [generatingAlternatives, setGeneratingAlternatives] = useState<SectionKey | null>(null);
   const [alternatives, setAlternatives] = useState<Record<SectionKey, string[]>>({} as Record<SectionKey, string[]>);
   const [manualMode, setManualMode] = useState(false);
+  const [fullScriptMode, setFullScriptMode] = useState(false);
+  const [fullScriptContent, setFullScriptContent] = useState('');
   const scriptProgress = useGenerationProgress([
     'Understanding project context',
     'Crafting narrative structure',
@@ -89,6 +91,9 @@ export const PitchScript: React.FC<PitchScriptProps> = ({ onGenerate, isPro, pro
     setEditingSection(null);
     setEditedContent('');
     setAlternatives({} as Record<SectionKey, string[]>);
+    setManualMode(false);
+    setFullScriptMode(false);
+    setFullScriptContent('');
   };
 
   const loadSavedData = async () => {
@@ -195,7 +200,59 @@ export const PitchScript: React.FC<PitchScriptProps> = ({ onGenerate, isPro, pro
 
     setScript(emptyScript);
     setManualMode(true);
+    setFullScriptMode(false);
+    setFullScriptContent('');
     setAlternatives({} as Record<SectionKey, string[]>);
+  };
+
+  const handleSaveFullScript = async () => {
+    if (!fullScriptContent.trim()) return;
+
+    setIsSaving(true);
+
+    // Create a script object with the full script content
+    const updatedScript: ScriptSections = {
+      problem: '',
+      solution: '',
+      traction: '',
+      fullScript: fullScriptContent,
+    };
+
+    setScript(updatedScript);
+
+    // Prepare script data for parent
+    const scriptData = {
+      problem: fullScriptContent,
+      solution: '',
+      traction: '',
+      script_type: scriptType,
+      demo_requirements: '',
+      demo_tools: '',
+      demo_realworld_use: '',
+      intro_who: '',
+      intro_what: '',
+      intro_why: '',
+    };
+
+    // Notify parent
+    onScriptSaved?.(scriptData);
+
+    // Save to database if project exists
+    if (projectId) {
+      try {
+        await databaseService.savePitchScript(projectId, idea || 'Manual Script', {
+          ...scriptData,
+          github_url: githubUrl || '',
+          github_analyzed: false,
+          your_name: yourName || '',
+        });
+      } catch (error) {
+        console.error('Save failed:', error);
+      }
+    }
+
+    setIsSaving(false);
+    setFullScriptMode(false);
   };
 
   const handleGenerate = async () => {
@@ -372,35 +429,44 @@ export const PitchScript: React.FC<PitchScriptProps> = ({ onGenerate, isPro, pro
           </label>
           <div className="grid grid-cols-3 gap-2">
             <button
-              onClick={() => setScriptType('intro')}
-              disabled={!!editingSection}
+              onClick={() => {
+                setScriptType('intro');
+                setFullScriptMode(false);
+              }}
+              disabled={!!editingSection || fullScriptMode}
               className={`py-2 px-3 text-xs font-mono transition-colors ${
                 scriptType === 'intro'
                   ? 'bg-accent-yellow text-black'
                   : 'border border-gray-800 text-gray-400 hover:text-white'
-              } ${editingSection ? 'opacity-50 cursor-not-allowed' : ''}`}
+              } ${(editingSection || fullScriptMode) ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               20s INTRO
             </button>
             <button
-              onClick={() => setScriptType('pitch')}
-              disabled={!!editingSection}
+              onClick={() => {
+                setScriptType('pitch');
+                setFullScriptMode(false);
+              }}
+              disabled={!!editingSection || fullScriptMode}
               className={`py-2 px-3 text-xs font-mono transition-colors ${
                 scriptType === 'pitch'
                   ? 'bg-accent-yellow text-black'
                   : 'border border-gray-800 text-gray-400 hover:text-white'
-              } ${editingSection ? 'opacity-50 cursor-not-allowed' : ''}`}
+              } ${(editingSection || fullScriptMode) ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               3m PITCH
             </button>
             <button
-              onClick={() => setScriptType('demo')}
-              disabled={!!editingSection}
+              onClick={() => {
+                setScriptType('demo');
+                setFullScriptMode(false);
+              }}
+              disabled={!!editingSection || fullScriptMode}
               className={`py-2 px-3 text-xs font-mono transition-colors ${
                 scriptType === 'demo'
                   ? 'bg-accent-yellow text-black'
                   : 'border border-gray-800 text-gray-400 hover:text-white'
-              } ${editingSection ? 'opacity-50 cursor-not-allowed' : ''}`}
+              } ${(editingSection || fullScriptMode) ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               3m DEMO
             </button>
@@ -425,10 +491,10 @@ export const PitchScript: React.FC<PitchScriptProps> = ({ onGenerate, isPro, pro
         <textarea
           value={idea}
           onChange={(e) => setIdea(e.target.value)}
-          disabled={!!editingSection}
+          disabled={!!editingSection || fullScriptMode}
           placeholder="Describe your project idea..."
           className={`w-full h-32 bg-black border border-gray-800 p-4 text-gray-300 text-sm placeholder-gray-600 focus:border-gray-700 focus:outline-none transition-colors resize-none ${
-            editingSection ? 'opacity-50 cursor-not-allowed' : ''
+            (editingSection || fullScriptMode) ? 'opacity-50 cursor-not-allowed' : ''
           }`}
         />
 
@@ -442,9 +508,9 @@ export const PitchScript: React.FC<PitchScriptProps> = ({ onGenerate, isPro, pro
               value={yourName}
               onChange={(e) => setYourName(e.target.value)}
               placeholder="John Doe"
-              disabled={!!editingSection}
+              disabled={!!editingSection || fullScriptMode}
               className={`w-full bg-black border border-gray-800 px-3 py-2 text-sm text-gray-300 placeholder-gray-600 focus:border-gray-700 focus:outline-none transition-colors ${
-                editingSection ? 'opacity-50 cursor-not-allowed' : ''
+                (editingSection || fullScriptMode) ? 'opacity-50 cursor-not-allowed' : ''
               }`}
             />
             <p className="text-xs text-gray-600 mt-2">
@@ -472,9 +538,9 @@ export const PitchScript: React.FC<PitchScriptProps> = ({ onGenerate, isPro, pro
               value={githubUrl}
               onChange={(e) => setGithubUrl(e.target.value)}
               placeholder="https://github.com/username/repo"
-              disabled={!isPro || !!editingSection}
+              disabled={!isPro || !!editingSection || fullScriptMode}
               className={`w-full bg-black border border-gray-800 px-3 py-2 text-sm text-gray-300 placeholder-gray-600 focus:border-gray-700 focus:outline-none transition-colors ${
-                !isPro || editingSection ? 'opacity-50 cursor-not-allowed' : ''
+                !isPro || editingSection || fullScriptMode ? 'opacity-50 cursor-not-allowed' : ''
               }`}
             />
             <p className="text-xs text-gray-600 mt-2">
@@ -484,7 +550,7 @@ export const PitchScript: React.FC<PitchScriptProps> = ({ onGenerate, isPro, pro
         )}
 
         <div className="space-y-2">
-          {script && (
+          {script && !fullScriptMode && (
             <div className="flex items-center gap-2 px-3 py-2 bg-gray-900 border border-gray-800 rounded">
               <span className="text-xs text-accent-yellow">💡</span>
               <p className="text-xs text-gray-400">
@@ -492,27 +558,90 @@ export const PitchScript: React.FC<PitchScriptProps> = ({ onGenerate, isPro, pro
               </p>
             </div>
           )}
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             <button
               onClick={handleGenerate}
-              disabled={!idea.trim() || isGenerating || !!editingSection}
-              className="bg-accent-yellow text-black font-bold py-3 text-sm tracking-wide hover:bg-accent-green transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              disabled={!idea.trim() || isGenerating || !!editingSection || fullScriptMode}
+              className="bg-accent-yellow text-black font-bold py-3 text-xs tracking-wide hover:bg-accent-green transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
               title="Click to generate a new script based on your current idea"
             >
-              {isGenerating ? 'GENERATING...' : 'GENERATE SCRIPT'}
+              {isGenerating ? 'GENERATING...' : 'GENERATE'}
             </button>
             <button
               onClick={handleCreateManual}
-              disabled={isGenerating || !!editingSection}
-              className="border-2 border-accent-yellow text-accent-yellow font-bold py-3 text-sm tracking-wide hover:bg-accent-yellow hover:text-black transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              disabled={isGenerating || !!editingSection || fullScriptMode}
+              className="border-2 border-accent-yellow text-accent-yellow font-bold py-3 text-xs tracking-wide hover:bg-accent-yellow hover:text-black transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
               title="Create empty script sections to write your own"
             >
-              WRITE MY OWN
+              BY SECTION
+            </button>
+            <button
+              onClick={() => {
+                setFullScriptMode(true);
+                setManualMode(false);
+                setScript(null);
+                setFullScriptContent('');
+              }}
+              disabled={isGenerating || !!editingSection}
+              className="border-2 border-accent-green text-accent-green font-bold py-3 text-xs tracking-wide hover:bg-accent-green hover:text-black transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              title="Write your entire script in one go"
+            >
+              ONE GO
             </button>
           </div>
         </div>
 
         <GenerationProgress steps={scriptProgress.steps} isVisible={scriptProgress.isActive} />
+
+        {fullScriptMode && (
+          <div className="mt-6 space-y-4 pt-6 border-t border-gray-800">
+            <div className="flex items-center gap-2 px-3 py-2 bg-accent-green/10 border border-accent-green rounded">
+              <span className="text-xs text-accent-green">✍️</span>
+              <p className="text-xs text-accent-green">
+                <strong>Full Script Mode:</strong> Write your entire script below in one go. No sections needed.
+              </p>
+            </div>
+
+            <div className="bg-black/50 border-l-4 border-accent-green p-6">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-sm text-accent-green font-mono uppercase tracking-wider">
+                  Your Complete Script
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      setFullScriptMode(false);
+                      setFullScriptContent('');
+                    }}
+                    disabled={isSaving}
+                    className="flex items-center gap-2 px-3 py-1.5 border border-gray-800 text-gray-400 hover:text-white hover:border-gray-700 transition-colors text-xs font-mono disabled:opacity-30"
+                  >
+                    <X size={14} />
+                    CANCEL
+                  </button>
+                  <button
+                    onClick={handleSaveFullScript}
+                    disabled={isSaving || !fullScriptContent.trim()}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-accent-green text-black hover:bg-accent-yellow transition-colors text-xs font-mono disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    <Save size={14} />
+                    {isSaving ? 'SAVING...' : 'SAVE SCRIPT'}
+                  </button>
+                </div>
+              </div>
+              <textarea
+                value={fullScriptContent}
+                onChange={(e) => setFullScriptContent(e.target.value)}
+                className="w-full h-96 bg-black border border-gray-800 p-4 text-base text-gray-300 focus:border-accent-green focus:outline-none resize-none leading-relaxed"
+                placeholder="Write your entire script here... No need to break it into sections."
+                autoFocus
+              />
+              <p className="text-xs text-gray-500 mt-3">
+                💡 Tip: Just write naturally. Include timing cues if you want (e.g., "Problem (60s): ..." or just write your script as-is)
+              </p>
+            </div>
+          </div>
+        )}
 
         {script && (
           <div className="mt-6 space-y-4 pt-6 border-t border-gray-800">
@@ -549,13 +678,25 @@ export const PitchScript: React.FC<PitchScriptProps> = ({ onGenerate, isPro, pro
                     </button>
                   </>
                 ) : (
-                  <button
-                    onClick={handleDownload}
-                    className="flex items-center gap-2 px-3 py-1.5 border border-gray-800 text-gray-400 hover:text-white hover:border-gray-700 transition-colors text-xs font-mono"
-                  >
-                    <Download size={14} />
-                    DOWNLOAD
-                  </button>
+                  <>
+                    <button
+                      onClick={() => {
+                        setFullScriptMode(true);
+                        setFullScriptContent(script?.fullScript || '');
+                      }}
+                      className="flex items-center gap-2 px-3 py-1.5 border border-accent-green text-accent-green hover:bg-accent-green hover:text-black transition-colors text-xs font-mono"
+                      title="Edit entire script at once"
+                    >
+                      EDIT AS ONE
+                    </button>
+                    <button
+                      onClick={handleDownload}
+                      className="flex items-center gap-2 px-3 py-1.5 border border-gray-800 text-gray-400 hover:text-white hover:border-gray-700 transition-colors text-xs font-mono"
+                    >
+                      <Download size={14} />
+                      DOWNLOAD
+                    </button>
+                  </>
                 )}
               </div>
             </div>
