@@ -113,7 +113,7 @@ Focus on: video requirements, documentation, deployment, source code, team regis
   const progress = items.length > 0 ? (completedCount / items.length) * 100 : 0;
 
   return (
-    <CyberCard title="SUBMISSION CHECKLIST" icon={CheckSquare}>
+    <CyberCard title="SUBMISSION CHECKLIST" icon={<CheckSquare size={20} />}>
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">

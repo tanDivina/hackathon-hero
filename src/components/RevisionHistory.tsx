@@ -116,7 +116,7 @@ export const RevisionHistory: React.FC<RevisionHistoryProps> = ({
   };
 
   return (
-    <CyberCard title="REVISION HISTORY" icon={History}>
+    <CyberCard title="REVISION HISTORY" icon={<History size={20} />}>
       <div className="space-y-4">
         <div className="flex gap-2 overflow-x-auto pb-2">
           {CONTENT_TYPES.map(type => (
