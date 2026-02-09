@@ -141,7 +141,7 @@ export const Footer: React.FC = () => {
 
         <div className="mt-12 pt-8 border-t border-gray-800 text-center">
           <p className="text-gray-600 text-xs font-mono">
-            &copy; {new Date().getFullYear()} HackathonHero. Built with passion for hackers by hackers.
+            &copy; {new Date().getFullYear()} HackathonHero.
           </p>
         </div>
       </div>
