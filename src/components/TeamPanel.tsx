@@ -64,7 +64,7 @@ export const TeamPanel: React.FC<TeamPanelProps> = ({ projectId, projectName }) 
 
   if (!currentUserId) {
     return (
-      <CyberCard title="TEAM COLLABORATION" icon={Users}>
+      <CyberCard title="TEAM COLLABORATION" icon={<Users size={20} />}>
         <div className="text-center py-8">
           <Users className="w-12 h-12 text-gray-600 mx-auto mb-3" />
           <p className="text-gray-400 text-sm">Sign in to collaborate with teammates</p>
@@ -74,7 +74,7 @@ export const TeamPanel: React.FC<TeamPanelProps> = ({ projectId, projectName }) 
   }
 
   return (
-    <CyberCard title="TEAM COLLABORATION" icon={Users}>
+    <CyberCard title="TEAM COLLABORATION" icon={<Users size={20} />}>
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <span className="text-sm text-gray-400">
