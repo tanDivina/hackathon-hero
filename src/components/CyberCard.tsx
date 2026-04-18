@@ -19,8 +19,8 @@ export const CyberCard: React.FC<CyberCardProps> = ({
 }) => {
   return (
     <div className={`bg-[#0a0a0a] border border-gray-800 hover:border-gray-700 transition-colors ${className}`}>
-      <div className="p-8">
-        <div className="flex items-start justify-between mb-6">
+      <div className="p-5 sm:p-8">
+        <div className="flex items-start justify-between mb-4 sm:mb-6">
           {icon && (
             <div className="text-accent-yellow">
               {icon}
@@ -33,12 +33,12 @@ export const CyberCard: React.FC<CyberCardProps> = ({
           )}
         </div>
 
-        <h3 className="text-2xl font-bold text-white mb-3 uppercase tracking-tight">
+        <h3 className="text-xl sm:text-2xl font-bold text-white mb-2 sm:mb-3 uppercase tracking-tight">
           {title}
         </h3>
 
         {description && (
-          <p className="text-gray-400 text-base leading-relaxed mb-6">
+          <p className="text-gray-400 text-sm sm:text-base leading-relaxed mb-4 sm:mb-6">
             {description}
           </p>
         )}

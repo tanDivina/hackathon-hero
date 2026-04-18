@@ -921,47 +921,223 @@ export const databaseService = {
   },
 
   async saveRevision(projectId: string, contentType: string, content: Record<string, unknown>): Promise<void> {
-    console.log('Saving revision:', projectId, contentType, Object.keys(content));
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (user) {
+      const { error } = await supabase
+        .from('revisions')
+        .insert({
+          project_id: projectId,
+          content_type: contentType,
+          content,
+        });
+      if (error) {
+        console.error('Error saving revision:', error);
+      }
+    } else {
+      const key = `revisions_${projectId}`;
+      const existing = JSON.parse(localStorage.getItem(key) || '[]');
+      const revision = {
+        id: `rev_${Date.now()}`,
+        project_id: projectId,
+        content_type: contentType,
+        content,
+        created_at: new Date().toISOString(),
+      };
+      existing.unshift(revision);
+      localStorage.setItem(key, JSON.stringify(existing.slice(0, 50)));
+    }
   },
 
   async getRevisionHistory(projectId: string): Promise<Array<{ id: string; content_type: string; content: Record<string, unknown>; created_at: string }>> {
-    return [];
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (user) {
+      const { data, error } = await supabase
+        .from('revisions')
+        .select('id, content_type, content, created_at')
+        .eq('project_id', projectId)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) {
+        console.error('Error fetching revision history:', error);
+        return [];
+      }
+      return data || [];
+    } else {
+      const key = `revisions_${projectId}`;
+      try {
+        return JSON.parse(localStorage.getItem(key) || '[]');
+      } catch {
+        return [];
+      }
+    }
   },
 
   async getProjectMembers(projectId: string): Promise<Array<{ id: string; email: string; role: 'owner' | 'member'; joined_at: string }>> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return [];
 
-    return [{
-      id: user.id,
-      email: user.email || 'you@example.com',
-      role: 'owner',
-      joined_at: new Date().toISOString(),
-    }];
+    const { data: members, error } = await supabase
+      .from('project_members')
+      .select('user_id, role, email, joined_at')
+      .eq('project_id', projectId);
+
+    if (error || !members || members.length === 0) {
+      return [{
+        id: user.id,
+        email: user.email || 'you@example.com',
+        role: 'owner',
+        joined_at: new Date().toISOString(),
+      }];
+    }
+
+    return members.map(m => ({
+      id: m.user_id,
+      email: m.email,
+      role: m.role as 'owner' | 'member',
+      joined_at: m.joined_at,
+    }));
   },
 
   async createInviteLink(projectId: string): Promise<string | null> {
-    const token = Math.random().toString(36).substring(2, 15);
-    console.log('Created invite link for project:', projectId, token);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+
+    const token = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+
+    const { error } = await supabase
+      .from('project_invites')
+      .insert({
+        project_id: projectId,
+        invite_token: token,
+        invited_by: user.id,
+        status: 'pending',
+      });
+
+    if (error) {
+      console.error('Error creating invite:', error);
+      return null;
+    }
+
     return token;
   },
 
+  async acceptInvite(token: string): Promise<{ success: boolean; projectId?: string }> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false };
+
+    const { data: invite, error: fetchError } = await supabase
+      .from('project_invites')
+      .select('id, project_id, status')
+      .eq('invite_token', token)
+      .maybeSingle();
+
+    if (fetchError || !invite || invite.status !== 'pending') {
+      return { success: false };
+    }
+
+    const { error: updateError } = await supabase
+      .from('project_invites')
+      .update({ status: 'accepted' })
+      .eq('id', invite.id);
+
+    if (updateError) return { success: false };
+
+    const { error: memberError } = await supabase
+      .from('project_members')
+      .insert({
+        project_id: invite.project_id,
+        user_id: user.id,
+        role: 'member',
+        email: user.email || '',
+      });
+
+    if (memberError && memberError.code !== '23505') {
+      return { success: false };
+    }
+
+    return { success: true, projectId: invite.project_id };
+  },
+
+  async ensureOwnerMember(projectId: string): Promise<void> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    await supabase
+      .from('project_members')
+      .upsert({
+        project_id: projectId,
+        user_id: user.id,
+        role: 'owner',
+        email: user.email || '',
+      }, { onConflict: 'project_id,user_id' });
+  },
+
   async getChecklist(projectId: string): Promise<ChecklistItem[]> {
-    const key = `checklist_${projectId}`;
-    const saved = localStorage.getItem(key);
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (user) {
+      const { data, error } = await supabase
+        .from('checklist_items')
+        .select('id, text, completed, source, position')
+        .eq('project_id', projectId)
+        .order('position', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching checklist:', error);
         return [];
       }
+      return (data || []).map(item => ({
+        id: item.id,
+        text: item.text,
+        completed: item.completed,
+        source: item.source as 'manual' | 'auto',
+      }));
+    } else {
+      const key = `checklist_${projectId}`;
+      const saved = localStorage.getItem(key);
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch {
+          return [];
+        }
+      }
+      return [];
     }
-    return [];
   },
 
   async saveChecklist(projectId: string, items: ChecklistItem[]): Promise<void> {
-    const key = `checklist_${projectId}`;
-    localStorage.setItem(key, JSON.stringify(items));
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (user) {
+      await supabase
+        .from('checklist_items')
+        .delete()
+        .eq('project_id', projectId);
+
+      if (items.length > 0) {
+        const { error } = await supabase
+          .from('checklist_items')
+          .insert(
+            items.map((item, idx) => ({
+              project_id: projectId,
+              text: item.text,
+              completed: item.completed,
+              source: item.source,
+              position: idx,
+            }))
+          );
+        if (error) {
+          console.error('Error saving checklist:', error);
+        }
+      }
+    } else {
+      const key = `checklist_${projectId}`;
+      localStorage.setItem(key, JSON.stringify(items));
+    }
   },
 };
 

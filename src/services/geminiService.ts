@@ -1,5 +1,5 @@
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview:generateContent';
 
 interface GeminiResponse {
   candidates: Array<{
@@ -45,31 +45,51 @@ export const geminiService = {
       };
     }
 
-    try {
-      const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-      });
+    const maxRetries = 3;
+    let lastError: unknown;
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(`Gemini API error: ${response.status} - ${JSON.stringify(errorData)}`);
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          const isRetryable = response.status === 429 || response.status >= 500;
+          if (isRetryable && attempt < maxRetries) {
+            const delay = Math.pow(2, attempt) * 500;
+            await new Promise(resolve => setTimeout(resolve, delay));
+            continue;
+          }
+          throw new Error(`Gemini API error: ${response.status} - ${JSON.stringify(errorData)}`);
+        }
+
+        const data: GeminiResponse = await response.json();
+
+        if (!data.candidates || data.candidates.length === 0) {
+          throw new Error('No response from Gemini API');
+        }
+
+        return data.candidates[0].content.parts[0].text;
+      } catch (error) {
+        lastError = error;
+        const isNetworkError = error instanceof TypeError && error.message.includes('fetch');
+        if (isNetworkError && attempt < maxRetries) {
+          const delay = Math.pow(2, attempt) * 500;
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
+        }
+        if (attempt === maxRetries) break;
       }
-
-      const data: GeminiResponse = await response.json();
-
-      if (!data.candidates || data.candidates.length === 0) {
-        throw new Error('No response from Gemini API');
-      }
-
-      return data.candidates[0].content.parts[0].text;
-    } catch (error) {
-      console.error('Gemini API call failed:', error);
-      throw error;
     }
+
+    console.error('Gemini API call failed after retries:', lastError);
+    throw lastError;
   },
 
   async parseJSON<T>(prompt: string, systemInstruction?: string): Promise<T> {

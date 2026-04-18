@@ -29,6 +29,10 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { SubmissionChecklist } from './components/SubmissionChecklist';
 import { TeamPanel } from './components/TeamPanel';
 import { RevisionHistory } from './components/RevisionHistory';
+import { ScorecardPanel } from './components/ScorecardPanel';
+import { CompetitorAnalysis } from './components/CompetitorAnalysis';
+import { SponsorDeepDive } from './components/SponsorDeepDive';
+import { DevpostDraft } from './components/DevpostDraft';
 
 const EXIT_INTENT_KEY = 'hackathon_hero_exit_intent_shown';
 
@@ -50,6 +54,7 @@ function HackathonWizard() {
   const [scriptReloadKey, setScriptReloadKey] = useState(0);
   const [rulesText, setRulesText] = useState('');
   const [revisionReloadKey, setRevisionReloadKey] = useState(0);
+  const [currentIdeaText, setCurrentIdeaText] = useState<string>('');
 
   const handleExitIntent = useCallback(() => {
     if (isPro) return;
@@ -98,6 +103,23 @@ function HackathonWizard() {
     const hasProAccess = await databaseService.checkProStatus();
     setIsPro(hasProAccess);
 
+    const inviteToken = new URLSearchParams(window.location.search).get('invite');
+    if (inviteToken) {
+      const result = await databaseService.acceptInvite(inviteToken);
+      if (result.success && result.projectId) {
+        showToast('Joined project successfully!', 'success');
+        const project = await databaseService.getProject(result.projectId);
+        if (project) {
+          setCurrentProject(project);
+          window.history.replaceState({}, '', '/');
+          return;
+        }
+      } else {
+        showToast('Invalid or expired invite link', 'error');
+        window.history.replaceState({}, '', '/');
+      }
+    }
+
     const projects = await databaseService.getProjects();
     if (projects.length === 0) {
       const newProject = await databaseService.createProject('My First Hackathon');
@@ -105,7 +127,6 @@ function HackathonWizard() {
         setCurrentProject(newProject);
       }
     } else if (!currentProject) {
-      // Only set project if none is selected
       setCurrentProject(projects[0]);
     }
   };
@@ -118,6 +139,7 @@ function HackathonWizard() {
 
     const idea = await databaseService.getIdea(currentProject.id);
     setCurrentIdeaName(idea?.idea_name || '');
+    setCurrentIdeaText(idea?.idea_text || '');
 
     const rulesData = await databaseService.getRulesData(currentProject.id);
     setHasRules(!!rulesData);
@@ -359,6 +381,7 @@ function HackathonWizard() {
     });
     setIsSaving(false);
 
+    setCurrentIdeaText(result.idea);
     databaseService.trackUsageEvent('idea_generated', currentProject.id);
     databaseService.saveRevision(currentProject.id, 'idea', { idea_text: result.idea, category: result.category, reasoning: result.reasoning });
     setRevisionReloadKey(prev => prev + 1);
@@ -698,7 +721,7 @@ function HackathonWizard() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6" key={currentProject?.id}>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5" key={currentProject?.id}>
             <RulesParser
               onParse={handleParseRules}
               onParseFromUrl={handleParseRulesFromUrl}
@@ -851,6 +874,38 @@ function HackathonWizard() {
               <RevisionHistory
                 projectId={currentProject?.id}
                 key={revisionReloadKey}
+              />
+            </ErrorBoundary>
+            <ErrorBoundary fallbackTitle="Scorecard encountered an error">
+              <ScorecardPanel
+                projectId={currentProject?.id}
+                idea={currentIdeaText}
+                hasRules={hasRules}
+                isPro={isPro}
+                onUpgradeClick={() => setShowProModal(true)}
+              />
+            </ErrorBoundary>
+            <ErrorBoundary fallbackTitle="Competitor Analysis encountered an error">
+              <CompetitorAnalysis
+                idea={currentIdeaText}
+                isPro={isPro}
+                onUpgradeClick={() => setShowProModal(true)}
+              />
+            </ErrorBoundary>
+            <ErrorBoundary fallbackTitle="Sponsor Deep Dive encountered an error">
+              <SponsorDeepDive
+                projectId={currentProject?.id}
+                idea={currentIdeaText}
+                isPro={isPro}
+                onUpgradeClick={() => setShowProModal(true)}
+              />
+            </ErrorBoundary>
+            <ErrorBoundary fallbackTitle="Devpost Draft encountered an error">
+              <DevpostDraft
+                projectId={currentProject?.id}
+                idea={currentIdeaText}
+                isPro={isPro}
+                onUpgradeClick={() => setShowProModal(true)}
               />
             </ErrorBoundary>
           </div>

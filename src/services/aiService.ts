@@ -804,6 +804,194 @@ Guidelines:
     }
   },
 
+  async scorecardIdea(
+    idea: string,
+    judgingCriteria: string[],
+    sponsors: string[],
+    theme: string
+  ): Promise<Array<{ criterion: string; score: number; rationale: string; tips: string }>> {
+    const prompt = `You are a hackathon judge. Score this project idea against each judging criterion.
+
+Project Idea: "${idea}"
+Theme: ${theme}
+Sponsors: ${sponsors.join(', ') || 'None'}
+
+Judging Criteria:
+${judgingCriteria.map((c, i) => `${i + 1}. ${c}`).join('\n')}
+
+For each criterion, provide:
+- A score from 1-10 (10 = perfect fit)
+- A 1-sentence rationale
+- A 1-sentence actionable tip to improve the score
+
+Return ONLY a JSON array:
+[
+  {
+    "criterion": "exact criterion text",
+    "score": 8,
+    "rationale": "Why this score (1 sentence)",
+    "tips": "How to score higher (1 sentence, specific and actionable)"
+  }
+]
+
+Be honest and critical. Return valid JSON only.`;
+
+    try {
+      return await geminiService.parseJSON<Array<{ criterion: string; score: number; rationale: string; tips: string }>>(prompt);
+    } catch {
+      return judgingCriteria.map(c => ({
+        criterion: c,
+        score: 7,
+        rationale: 'The idea generally aligns with this criterion.',
+        tips: 'Consider strengthening this aspect with more specific features.',
+      }));
+    }
+  },
+
+  async analyzeCompetitors(
+    idea: string,
+    competitorUrls: string[]
+  ): Promise<{ differentiators: string[]; risks: string[]; improvements: string[]; summary: string }> {
+    const urlList = competitorUrls.filter(Boolean).join('\n');
+    const prompt = `You are a hackathon strategy expert. Analyze how this project idea compares to competitors.
+
+Our Project: "${idea}"
+
+Competitor Project URLs/descriptions submitted:
+${urlList || 'No specific competitors provided - analyze against typical hackathon submissions for this type of project'}
+
+Provide a competitive analysis. Return ONLY this JSON structure:
+{
+  "differentiators": ["what makes our project unique vs typical submissions (3-4 points)"],
+  "risks": ["where competitors might have an edge or where our project is weak (2-3 points)"],
+  "improvements": ["specific features to add or changes to make to stand out more (3-4 actionable points)"],
+  "summary": "2-3 sentence competitive positioning summary"
+}
+
+Be specific and actionable. Return valid JSON only.`;
+
+    try {
+      return await geminiService.parseJSON<{ differentiators: string[]; risks: string[]; improvements: string[]; summary: string }>(prompt);
+    } catch {
+      return {
+        differentiators: ['Unique approach to the problem space', 'Strong sponsor technology integration'],
+        risks: ['Competition may have more polished UI', 'Similar ideas may exist in the space'],
+        improvements: ['Add a live demo endpoint', 'Create a compelling one-liner hook'],
+        summary: 'This project has a solid foundation. Focus on differentiation through polish and clear communication.',
+      };
+    }
+  },
+
+  async sponsorDeepDive(
+    sponsor: string,
+    idea: string,
+    eventType: string
+  ): Promise<{ overview: string; relevantProducts: string[]; integrationTips: string[]; winningAngle: string; pastWinPatterns: string }> {
+    const prompt = `You are a hackathon strategy expert with deep knowledge of tech company ecosystems.
+
+Sponsor: "${sponsor}"
+Our Project Idea: "${idea}"
+Event Type: ${eventType}
+
+Provide an actionable deep-dive on how to win with this sponsor. Return ONLY this JSON:
+{
+  "overview": "2-sentence overview of what ${sponsor} cares about and what they want to see from hackathon submissions",
+  "relevantProducts": ["List of ${sponsor}'s actual products/APIs/services most relevant to our idea (3-5 items)"],
+  "integrationTips": ["Specific technical integration tips for our idea (3-4 actionable items)"],
+  "winningAngle": "The single most compelling angle to pitch to ${sponsor} judges given our idea (2-3 sentences)",
+  "pastWinPatterns": "General patterns that tend to win ${sponsor} sponsor prizes (1-2 sentences based on their public goals/values)"
+}
+
+Be specific to the actual sponsor. Return valid JSON only.`;
+
+    try {
+      return await geminiService.parseJSON<{ overview: string; relevantProducts: string[]; integrationTips: string[]; winningAngle: string; pastWinPatterns: string }>(prompt);
+    } catch {
+      return {
+        overview: `${sponsor} values innovation and practical applications of their technology.`,
+        relevantProducts: [`${sponsor} core API`, `${sponsor} developer tools`],
+        integrationTips: ['Integrate their primary API for core functionality', 'Use their SDK for authentication'],
+        winningAngle: `Show how your idea creates unique value using ${sponsor}'s ecosystem.`,
+        pastWinPatterns: 'Projects that demonstrate deep integration and clear user value tend to win sponsor prizes.',
+      };
+    }
+  },
+
+  async generateDevpostDraft(
+    idea: string,
+    rulesData: { sponsors: string[]; judgingCriteria: string[]; theme: string; eventType: string },
+    pitchScript?: { problem: string; solution: string; traction: string },
+    teamName?: string
+  ): Promise<{
+    projectName: string;
+    tagline: string;
+    inspiration: string;
+    whatItDoes: string;
+    howWeBuiltIt: string;
+    challenges: string;
+    accomplishments: string;
+    whatWelearned: string;
+    whatsNext: string;
+    builtWith: string[];
+  }> {
+    const scriptContext = pitchScript
+      ? `\nPitch Script Context:\n- Problem: ${pitchScript.problem}\n- Solution: ${pitchScript.solution}\n- Traction: ${pitchScript.traction}`
+      : '';
+
+    const prompt = `You are a Devpost submission writer. Create a compelling Devpost project submission for a hackathon.
+
+Project Idea: "${idea}"
+Event Type: ${rulesData.eventType}
+Theme: ${rulesData.theme}
+Sponsors: ${rulesData.sponsors.join(', ') || 'None'}
+Judging Criteria: ${rulesData.judgingCriteria.join(', ')}
+${teamName ? `Team/Builder: ${teamName}` : ''}${scriptContext}
+
+Write a complete Devpost submission. Return ONLY this JSON:
+{
+  "projectName": "Catchy project name (2-4 words)",
+  "tagline": "One compelling sentence (max 15 words)",
+  "inspiration": "What inspired this project (2-3 sentences, personal and authentic)",
+  "whatItDoes": "Clear description of functionality (3-4 sentences, present tense)",
+  "howWeBuiltIt": "Technical implementation details mentioning the tech stack (2-3 sentences)",
+  "challenges": "Honest challenges faced during development (2-3 sentences)",
+  "accomplishments": "What the team is proud of (2-3 sentences)",
+  "whatWelearned": "Key learnings from building this (2 sentences)",
+  "whatsNext": "Future roadmap and plans (2-3 sentences)",
+  "builtWith": ["list", "of", "technologies", "used"]
+}
+
+Make it authentic, compelling, and tailored to the judging criteria. Return valid JSON only.`;
+
+    try {
+      return await geminiService.parseJSON<{
+        projectName: string;
+        tagline: string;
+        inspiration: string;
+        whatItDoes: string;
+        howWeBuiltIt: string;
+        challenges: string;
+        accomplishments: string;
+        whatWelearned: string;
+        whatsNext: string;
+        builtWith: string[];
+      }>(prompt);
+    } catch {
+      return {
+        projectName: 'HackProject',
+        tagline: 'Solving real problems with innovative technology.',
+        inspiration: 'We were inspired by the challenge of solving this problem in a new way.',
+        whatItDoes: `${idea} — providing users with a seamless experience that addresses their core needs.`,
+        howWeBuiltIt: 'Built with React, TypeScript, and Supabase for a scalable, modern architecture.',
+        challenges: 'Integrating multiple APIs in a short timeframe required creative problem-solving.',
+        accomplishments: 'We are proud of shipping a functional MVP with a polished UI in the hackathon timeframe.',
+        whatWelearned: 'We deepened our understanding of rapid prototyping and cross-functional collaboration.',
+        whatsNext: 'We plan to add more features and launch publicly after the hackathon.',
+        builtWith: ['React', 'TypeScript', 'Supabase', 'Tailwind CSS'],
+      };
+    }
+  },
+
   async generateAlternativeSections(
     sectionType: 'problem' | 'solution' | 'traction' | 'requirements' | 'tools' | 'realworld_use',
     originalContent: string,

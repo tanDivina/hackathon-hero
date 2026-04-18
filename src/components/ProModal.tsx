@@ -30,17 +30,17 @@ export const ProModal: React.FC<ProModalProps> = ({ isOpen, onClose, onUnlock, i
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm">
-      <div className="bg-[#0a0a0a] border border-gray-800 max-w-2xl w-full max-h-[90vh] overflow-y-auto p-8 relative">
+      <div className="bg-[#0a0a0a] border border-gray-800 max-w-2xl w-full max-h-[90vh] overflow-y-auto p-5 sm:p-8 relative">
         <button
           onClick={onClose}
-          className="absolute top-6 right-6 text-gray-600 hover:text-white transition-colors"
+          className="absolute top-4 right-4 sm:top-6 sm:right-6 text-gray-600 hover:text-white transition-colors"
         >
           <X size={20} />
         </button>
 
-        <div className="mb-8">
-          <Crown className="text-accent-yellow mb-4" size={40} strokeWidth={1.5} />
-          <h2 className="text-3xl font-black text-white mb-2 uppercase tracking-tight">Unlock Pro Features</h2>
+        <div className="mb-6 sm:mb-8">
+          <Crown className="text-accent-yellow mb-3 sm:mb-4" size={36} strokeWidth={1.5} />
+          <h2 className="text-2xl sm:text-3xl font-black text-white mb-2 uppercase tracking-tight">Unlock Pro Features</h2>
           <p className="text-gray-500 text-base">
             Advanced AI insights and competitive intelligence
           </p>
@@ -53,7 +53,7 @@ export const ProModal: React.FC<ProModalProps> = ({ isOpen, onClose, onUnlock, i
           </button>
         </div>
 
-        <div className="space-y-3 mb-8">
+        <div className="space-y-3 mb-6 sm:mb-8">
           <div className="flex items-start gap-3 border-l-2 border-gray-800 pl-4 py-2">
             <Link className="text-accent-yellow flex-shrink-0 mt-1" size={18} strokeWidth={1.5} />
             <div>
@@ -110,6 +110,46 @@ export const ProModal: React.FC<ProModalProps> = ({ isOpen, onClose, onUnlock, i
               <h3 className="font-bold text-white text-sm mb-1">All Export Formats</h3>
               <p className="text-xs text-gray-500">
                 Download in PDF, DOCX, Markdown, and TXT
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3 border-l-2 border-accent-yellow/30 pl-4 py-2">
+            <span className="text-accent-yellow flex-shrink-0 mt-1 text-base font-bold">🎯</span>
+            <div>
+              <h3 className="font-bold text-white text-sm mb-1">Judging Scorecard</h3>
+              <p className="text-xs text-gray-500">
+                AI scores your idea against each judging criterion
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3 border-l-2 border-accent-yellow/30 pl-4 py-2">
+            <span className="text-accent-yellow flex-shrink-0 mt-1 text-base font-bold">⚔️</span>
+            <div>
+              <h3 className="font-bold text-white text-sm mb-1">Competitor Analysis</h3>
+              <p className="text-xs text-gray-500">
+                Identify your edge and differentiation vs other projects
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3 border-l-2 border-accent-yellow/30 pl-4 py-2">
+            <span className="text-accent-yellow flex-shrink-0 mt-1 text-base font-bold">🏢</span>
+            <div>
+              <h3 className="font-bold text-white text-sm mb-1">Sponsor Deep Dive</h3>
+              <p className="text-xs text-gray-500">
+                Winning angles and integration tips for each sponsor
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3 border-l-2 border-accent-yellow/30 pl-4 py-2">
+            <span className="text-accent-yellow flex-shrink-0 mt-1 text-base font-bold">📄</span>
+            <div>
+              <h3 className="font-bold text-white text-sm mb-1">Devpost Draft Generator</h3>
+              <p className="text-xs text-gray-500">
+                One-click pre-filled Devpost submission ready to copy
               </p>
             </div>
           </div>
