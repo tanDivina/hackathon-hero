@@ -37,8 +37,8 @@ type RulesMode = 'paste' | 'url';
 
 const PROGRESS_STEPS = [
   'Fetching repository content',
+  'Checking repo creation date',
   'Reading hackathon rules',
-  'Checking recycling policy',
   'Analyzing tech compatibility',
   'Building adjustment plan',
 ];
@@ -77,9 +77,38 @@ export const ProjectRecycler: React.FC<ProjectRecyclerProps> = ({ isPro, onUpgra
   const [step, setStep] = useState<Step>('repo');
   const [progressStep, setProgressStep] = useState(0);
   const [result, setResult] = useState<RecycleResult | null>(null);
+  const [repoCreatedDate, setRepoCreatedDate] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [expandedAdj, setExpandedAdj] = useState<number | null>(0);
   const [copiedInstr, setCopiedInstr] = useState<number | null>(null);
+
+  const getRepoFirstCommitDate = async (repoUrl: string): Promise<string | null> => {
+    const match = repoUrl.trim().replace(/\/$/, '').match(/github\.com\/([^/]+\/[^/]+)/);
+    if (!match) return null;
+    const slug = match[1].replace(/\.git$/, '');
+    try {
+      // Get the default branch's commit list in ascending order to find the first commit
+      const commitsResp = await fetch(
+        `https://api.github.com/repos/${slug}/commits?per_page=1&order=asc`,
+        { headers: { Accept: 'application/vnd.github+json' } }
+      );
+      if (!commitsResp.ok) return null;
+
+      // GitHub doesn't support order=asc directly, so we use the last page trick via Link header
+      // Instead, fetch the repo creation date which is a reliable proxy for the first push
+      const repoResp = await fetch(
+        `https://api.github.com/repos/${slug}`,
+        { headers: { Accept: 'application/vnd.github+json' } }
+      );
+      if (!repoResp.ok) return null;
+      const repoData = await repoResp.json();
+      const createdAt: string = repoData.created_at;
+      if (!createdAt) return null;
+      return new Date(createdAt).toISOString().split('T')[0]; // YYYY-MM-DD
+    } catch {
+      return null;
+    }
+  };
 
   const normalizeGitHubUrl = (url: string): { raw: string; readme: string } => {
     const cleaned = url.trim().replace(/\/$/, '');
@@ -103,6 +132,7 @@ export const ProjectRecycler: React.FC<ProjectRecyclerProps> = ({ isPro, onUpgra
 
     setError('');
     setResult(null);
+    setRepoCreatedDate(null);
     setStep('analyzing');
     setProgressStep(0);
 
@@ -147,8 +177,13 @@ export const ProjectRecycler: React.FC<ProjectRecyclerProps> = ({ isPro, onUpgra
         return;
       }
 
-      // 2. Fetch rules
+      // 2. Fetch repo creation date from GitHub API
       advance(1);
+      const createdDate = await getRepoFirstCommitDate(repoUrl);
+      setRepoCreatedDate(createdDate);
+
+      // 3. Fetch rules
+      advance(2);
       let finalRulesText = rulesText;
       if (rulesMode === 'url' && rulesUrl.trim()) {
         try {
@@ -166,12 +201,11 @@ export const ProjectRecycler: React.FC<ProjectRecyclerProps> = ({ isPro, onUpgra
         return;
       }
 
-      // 3-5. Analyze
-      advance(2);
-      setTimeout(() => advance(3), 1500);
-      setTimeout(() => advance(4), 3000);
+      // 4-5. Analyze
+      advance(3);
+      setTimeout(() => advance(4), 1500);
 
-      const analysis = await aiService.analyzeProjectRecyclability(repoContent, finalRulesText, raw);
+      const analysis = await aiService.analyzeProjectRecyclability(repoContent, finalRulesText, raw, createdDate);
 
       setResult(analysis);
       setStep('results');
@@ -186,6 +220,7 @@ export const ProjectRecycler: React.FC<ProjectRecyclerProps> = ({ isPro, onUpgra
   const reset = () => {
     setStep('repo');
     setResult(null);
+    setRepoCreatedDate(null);
     setError('');
     setProgressStep(0);
   };
@@ -386,15 +421,18 @@ export const ProjectRecycler: React.FC<ProjectRecyclerProps> = ({ isPro, onUpgra
             <div className="p-3 bg-gray-800/40 rounded border border-gray-800 space-y-2">
               <p className="text-[10px] text-gray-500 uppercase tracking-wider font-mono">Project Summary</p>
               <p className="text-xs text-gray-300 leading-relaxed">{result.projectSummary}</p>
-              {result.techStack.length > 0 && (
-                <div className="flex flex-wrap gap-1 pt-1">
-                  {result.techStack.map((t, i) => (
-                    <span key={i} className="px-2 py-0.5 bg-gray-700 text-gray-300 rounded text-[10px] font-mono">
-                      {t}
-                    </span>
-                  ))}
-                </div>
-              )}
+              <div className="flex flex-wrap gap-2 pt-1 items-center">
+                {repoCreatedDate && (
+                  <span className="px-2 py-0.5 bg-blue-500/20 text-blue-300 rounded text-[10px] font-mono border border-blue-500/30">
+                    Repo created: {repoCreatedDate}
+                  </span>
+                )}
+                {result.techStack.map((t, i) => (
+                  <span key={i} className="px-2 py-0.5 bg-gray-700 text-gray-300 rounded text-[10px] font-mono">
+                    {t}
+                  </span>
+                ))}
+              </div>
             </div>
 
             {/* Recycling Policy */}

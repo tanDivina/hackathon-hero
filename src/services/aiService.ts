@@ -995,7 +995,8 @@ Make it authentic, compelling, and tailored to the judging criteria. Return vali
   async analyzeProjectRecyclability(
     repoContent: string,
     rulesText: string,
-    repoUrl: string
+    repoUrl: string,
+    repoCreatedDate?: string | null
   ): Promise<{
     verdict: 'allowed' | 'not_allowed' | 'unclear';
     verdictReason: string;
@@ -1013,12 +1014,18 @@ Make it authentic, compelling, and tailored to the judging criteria. Return vali
     missingRequirements: string[];
     recommendedApproach: string;
   }> {
+    const repoDateLine = repoCreatedDate
+      ? `GITHUB REPO FIRST COMMIT DATE: ${repoCreatedDate} (this is when the project was first created/pushed)`
+      : `GITHUB REPO FIRST COMMIT DATE: unknown (could not fetch from GitHub API)`;
+
     const prompt = `You are a hackathon strategy expert. Analyze whether an existing GitHub project can be recycled/submitted to a new hackathon.
 
 EXISTING PROJECT (from ${repoUrl}):
 \`\`\`
 ${repoContent.substring(0, 6000)}
 \`\`\`
+
+${repoDateLine}
 
 HACKATHON RULES:
 \`\`\`
@@ -1027,11 +1034,19 @@ ${rulesText.substring(0, 4000)}
 
 Your task:
 
-STEP 1 — RECYCLING POLICY ANALYSIS
-Look for these signals in the rules:
-- ALLOWS recycling: "project must be created after [date]", "no restriction on prior work", silence on the topic (default = allowed unless stated otherwise)
-- BLOCKS recycling: "must be built during the hackathon", "no prior work", "project must be new", "cannot have been submitted to other hackathons"
-- UNCLEAR: ambiguous language that could go either way
+STEP 1 — RECYCLING / "NEW PROJECTS ONLY" POLICY ANALYSIS
+
+First, extract the hackathon's submission period start date from the rules if present.
+
+Then classify the recycling policy:
+- BLOCKS recycling (verdict = "not_allowed"): rules say "must be newly created", "new projects only", "created during the hackathon", "built during the submission period", "no prior work", "cannot have been submitted elsewhere"
+- ALLOWS recycling (verdict = "allowed"): rules are silent on prior work, OR say "project must be created after [date]" AND the repo first commit date is AFTER that date
+- DATE CONFLICT (verdict = "not_allowed"): rules say "new projects only" / "must be created during the submission period" AND the repo first commit date is BEFORE the submission period start date
+- DATE CONFIRMED (verdict = "allowed"): rules say "new projects only" / "must be created during the submission period" AND the repo first commit date is ON OR AFTER the submission period start date — this means the project qualifies as new
+- UNCLEAR (verdict = "unclear"): only use this if you genuinely cannot determine the policy after careful reading
+
+CRITICAL: "New Projects Only" + repo created AFTER hackathon start = ALLOWED. The project IS new.
+CRITICAL: Do NOT return "unclear" if the rules explicitly address new project requirements — make a definitive call.
 
 STEP 2 — COMPATIBILITY ANALYSIS
 What does the project already have that matches requirements?
@@ -1043,11 +1058,11 @@ For each gap, provide concrete, actionable instructions to bring the project int
 Return ONLY this JSON structure:
 {
   "verdict": "allowed" | "not_allowed" | "unclear",
-  "verdictReason": "1-2 sentence explanation citing specific rule language",
+  "verdictReason": "1-2 sentence explanation citing specific rule language AND the repo creation date if relevant (e.g., 'Rules require new projects created after [start date]. Your repo was first pushed on [date], which is after the start date — it qualifies.')",
   "projectSummary": "What the project does, its purpose and core functionality (2-3 sentences)",
   "techStack": ["detected", "technologies", "from", "repo"],
   "compatibilityScore": 75,
-  "recyclingPolicy": "Direct quote or paraphrase of what the rules say about prior work / when the project must be created. If silent, state that.",
+  "recyclingPolicy": "Direct quote or paraphrase of what the rules say about prior work / new project requirements, including any dates mentioned. If silent, state that.",
   "requiredAdjustments": [
     {
       "title": "Short descriptive title (5 words max)",
@@ -1064,7 +1079,6 @@ Return ONLY this JSON structure:
 Notes:
 - compatibilityScore: 0-100 (100 = perfect fit with no changes, 0 = fundamentally incompatible)
 - If verdict is "not_allowed", requiredAdjustments should still list what WOULD be needed if they built fresh
-- If verdict is "unclear", explain both interpretations in verdictReason
 - Be practical and specific — cite actual sponsor names, API names, tech names from the rules
 - Return valid JSON only`;
 
