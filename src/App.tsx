@@ -33,6 +33,7 @@ import { ScorecardPanel } from './components/ScorecardPanel';
 import { CompetitorAnalysis } from './components/CompetitorAnalysis';
 import { SponsorDeepDive } from './components/SponsorDeepDive';
 import { DevpostDraft } from './components/DevpostDraft';
+import { ProjectRecycler } from './components/ProjectRecycler';
 
 const EXIT_INTENT_KEY = 'hackathon_hero_exit_intent_shown';
 
@@ -904,6 +905,12 @@ function HackathonWizard() {
               <DevpostDraft
                 projectId={currentProject?.id}
                 idea={currentIdeaText}
+                isPro={isPro}
+                onUpgradeClick={() => setShowProModal(true)}
+              />
+            </ErrorBoundary>
+            <ErrorBoundary fallbackTitle="Project Recycler encountered an error">
+              <ProjectRecycler
                 isPro={isPro}
                 onUpgradeClick={() => setShowProModal(true)}
               />

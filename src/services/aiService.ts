@@ -992,6 +992,116 @@ Make it authentic, compelling, and tailored to the judging criteria. Return vali
     }
   },
 
+  async analyzeProjectRecyclability(
+    repoContent: string,
+    rulesText: string,
+    repoUrl: string
+  ): Promise<{
+    verdict: 'allowed' | 'not_allowed' | 'unclear';
+    verdictReason: string;
+    projectSummary: string;
+    techStack: string[];
+    compatibilityScore: number;
+    recyclingPolicy: string;
+    requiredAdjustments: Array<{
+      title: string;
+      description: string;
+      effort: 'Low' | 'Medium' | 'High';
+      instructions: string;
+    }>;
+    keyStrengths: string[];
+    missingRequirements: string[];
+    recommendedApproach: string;
+  }> {
+    const prompt = `You are a hackathon strategy expert. Analyze whether an existing GitHub project can be recycled/submitted to a new hackathon.
+
+EXISTING PROJECT (from ${repoUrl}):
+\`\`\`
+${repoContent.substring(0, 6000)}
+\`\`\`
+
+HACKATHON RULES:
+\`\`\`
+${rulesText.substring(0, 4000)}
+\`\`\`
+
+Your task:
+
+STEP 1 — RECYCLING POLICY ANALYSIS
+Look for these signals in the rules:
+- ALLOWS recycling: "project must be created after [date]", "no restriction on prior work", silence on the topic (default = allowed unless stated otherwise)
+- BLOCKS recycling: "must be built during the hackathon", "no prior work", "project must be new", "cannot have been submitted to other hackathons"
+- UNCLEAR: ambiguous language that could go either way
+
+STEP 2 — COMPATIBILITY ANALYSIS
+What does the project already have that matches requirements?
+What is missing or needs adjustment? (e.g., must integrate specific sponsor API, must use certain tech, must meet theme)
+
+STEP 3 — ADJUSTMENT PLAN
+For each gap, provide concrete, actionable instructions to bring the project into compliance.
+
+Return ONLY this JSON structure:
+{
+  "verdict": "allowed" | "not_allowed" | "unclear",
+  "verdictReason": "1-2 sentence explanation citing specific rule language",
+  "projectSummary": "What the project does, its purpose and core functionality (2-3 sentences)",
+  "techStack": ["detected", "technologies", "from", "repo"],
+  "compatibilityScore": 75,
+  "recyclingPolicy": "Direct quote or paraphrase of what the rules say about prior work / when the project must be created. If silent, state that.",
+  "requiredAdjustments": [
+    {
+      "title": "Short descriptive title (5 words max)",
+      "description": "What needs to change and why (1-2 sentences)",
+      "effort": "Low" | "Medium" | "High",
+      "instructions": "Specific step-by-step instructions to implement this adjustment (3-5 bullet points as a single string with newlines)"
+    }
+  ],
+  "keyStrengths": ["Already uses X", "Meets Y requirement", "..."],
+  "missingRequirements": ["Must add Z sponsor integration", "Theme alignment needed", "..."],
+  "recommendedApproach": "Overall 2-3 sentence strategic recommendation on how to proceed with this recycling"
+}
+
+Notes:
+- compatibilityScore: 0-100 (100 = perfect fit with no changes, 0 = fundamentally incompatible)
+- If verdict is "not_allowed", requiredAdjustments should still list what WOULD be needed if they built fresh
+- If verdict is "unclear", explain both interpretations in verdictReason
+- Be practical and specific — cite actual sponsor names, API names, tech names from the rules
+- Return valid JSON only`;
+
+    try {
+      return await geminiService.parseJSON<{
+        verdict: 'allowed' | 'not_allowed' | 'unclear';
+        verdictReason: string;
+        projectSummary: string;
+        techStack: string[];
+        compatibilityScore: number;
+        recyclingPolicy: string;
+        requiredAdjustments: Array<{
+          title: string;
+          description: string;
+          effort: 'Low' | 'Medium' | 'High';
+          instructions: string;
+        }>;
+        keyStrengths: string[];
+        missingRequirements: string[];
+        recommendedApproach: string;
+      }>(prompt);
+    } catch {
+      return {
+        verdict: 'unclear',
+        verdictReason: 'Could not analyze the rules and repository. Please try again.',
+        projectSummary: 'Unable to analyze repository content.',
+        techStack: [],
+        compatibilityScore: 0,
+        recyclingPolicy: 'Analysis failed.',
+        requiredAdjustments: [],
+        keyStrengths: [],
+        missingRequirements: [],
+        recommendedApproach: 'Please try again with a valid repository URL and hackathon rules.',
+      };
+    }
+  },
+
   async generateAlternativeSections(
     sectionType: 'problem' | 'solution' | 'traction' | 'requirements' | 'tools' | 'realworld_use',
     originalContent: string,
