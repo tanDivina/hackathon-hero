@@ -22,6 +22,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'r
 import { LoginPage } from './pages/LoginPage';
 import { SuccessPage } from './pages/SuccessPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { AuthGuard } from './components/AuthGuard';
 import { exportUtils } from './utils/exportUtils';
 import { supabase } from './lib/supabase';
@@ -1025,6 +1026,7 @@ function App() {
     <Router>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/success" element={<SuccessPage />} />
         <Route path="/profile" element={
           <AuthGuard>
