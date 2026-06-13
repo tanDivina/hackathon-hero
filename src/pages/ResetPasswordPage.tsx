@@ -5,8 +5,13 @@ import { Lock, Eye, EyeOff, CheckCircle2, AlertTriangle } from 'lucide-react';
 
 type View = 'loading' | 'form' | 'success' | 'invalid';
 
+function isRecoveryHash(): boolean {
+  const hash = window.location.hash;
+  return hash.includes('type=recovery') || hash.includes('type=magiclink');
+}
+
 export function ResetPasswordPage() {
-  const [view, setView] = useState<View>('loading');
+  const [view, setView] = useState<View>(() => isRecoveryHash() ? 'loading' : 'invalid');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -16,16 +21,21 @@ export function ResetPasswordPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') {
+    // If the URL doesn't look like a recovery link, bail immediately.
+    if (!isRecoveryHash()) return;
+
+    // Supabase v2 fires PASSWORD_RECOVERY when it processes a recovery hash.
+    // In some cases it fires SIGNED_IN instead — handle both.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY' || (event === 'SIGNED_IN' && session && isRecoveryHash())) {
         setView('form');
       }
     });
 
-    // If Supabase doesn't fire PASSWORD_RECOVERY within 5s, the link is invalid/expired.
+    // Fallback: if neither event fires within 6s, the token is invalid.
     const timeout = setTimeout(() => {
       setView(v => v === 'loading' ? 'invalid' : v);
-    }, 5000);
+    }, 6000);
 
     return () => {
       subscription.unsubscribe();
