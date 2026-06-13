@@ -16,28 +16,22 @@ export function ResetPasswordPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Supabase injects the recovery session via onAuthStateChange when the
-    // user arrives from the password-reset email link.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') {
         setView('form');
-      } else if (event === 'SIGNED_IN' && view === 'loading') {
-        // Already has a session from a prior login — not a recovery flow
-        setView('invalid');
       }
     });
 
-    // Fallback: if hash contains access_token with type=recovery, Supabase
-    // will fire PASSWORD_RECOVERY above. If nothing fires within 3s, show invalid.
+    // If Supabase doesn't fire PASSWORD_RECOVERY within 5s, the link is invalid/expired.
     const timeout = setTimeout(() => {
       setView(v => v === 'loading' ? 'invalid' : v);
-    }, 3000);
+    }, 5000);
 
     return () => {
       subscription.unsubscribe();
       clearTimeout(timeout);
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
