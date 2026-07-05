@@ -97,7 +97,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDashboard, isPr
             className="font-black tracking-tight transition-all duration-300"
             style={{ fontSize: scrolled ? '1.125rem' : '2.5rem', lineHeight: 1 }}
           >
-            HACKATHON<span className="text-accent-yellow">HERO</span>
+            HACKATHON<span className="text-accent-yellow header-text">HERO</span>
           </span>
           <div className="flex items-center gap-3">
             {isPro ? (
@@ -138,7 +138,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDashboard, isPr
 
           <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-none mb-6">
             WIN MORE<br />
-            <span className="text-accent-yellow">HACKATHONS.</span>
+            <span className="text-accent-yellow header-text">HACKATHONS.</span>
           </h1>
 
           <p className="text-lg sm:text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed mb-10">
