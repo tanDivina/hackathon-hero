@@ -129,7 +129,7 @@ ${draft.builtWith.map(t => `- ${t}`).join('\n')}
           <p className="text-gray-500 text-sm mb-3">Pro feature</p>
           <button
             onClick={onUpgradeClick}
-            className="px-4 py-2 text-xs font-bold bg-accent-yellow text-black rounded hover:bg-accent-yellow/90 transition-colors"
+            className="px-4 py-2 text-xs font-bold bg-accent-yellow text-black rounded hover:bg-gray-200 transition-colors"
           >
             UNLOCK PRO
           </button>

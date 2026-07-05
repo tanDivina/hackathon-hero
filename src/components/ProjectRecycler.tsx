@@ -350,7 +350,7 @@ export const ProjectRecycler: React.FC<ProjectRecyclerProps> = ({ isPro, onUpgra
             <button
               onClick={step === 'results' ? reset : handleAnalyze}
               disabled={!repoUrl.trim() || (rulesMode === 'paste' ? !rulesText.trim() : !rulesUrl.trim())}
-              className="w-full flex items-center justify-center gap-2 py-3 text-sm font-bold bg-accent-yellow text-black rounded hover:bg-accent-yellow/90 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center gap-2 py-3 text-sm font-bold bg-accent-yellow text-black rounded hover:bg-gray-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {step === 'results' ? (
                 <>

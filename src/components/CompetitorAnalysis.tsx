@@ -92,7 +92,7 @@ export const CompetitorAnalysis: React.FC<CompetitorAnalysisProps> = ({
           <p className="text-gray-500 text-sm mb-3">Pro feature</p>
           <button
             onClick={onUpgradeClick}
-            className="px-4 py-2 text-xs font-bold bg-accent-yellow text-black rounded hover:bg-accent-yellow/90 transition-colors"
+            className="px-4 py-2 text-xs font-bold bg-accent-yellow text-black rounded hover:bg-gray-200 transition-colors"
           >
             UNLOCK PRO
           </button>
@@ -143,7 +143,7 @@ export const CompetitorAnalysis: React.FC<CompetitorAnalysisProps> = ({
         <button
           onClick={handleAnalyze}
           disabled={isLoading || !idea}
-          className="w-full flex items-center justify-center gap-2 py-2.5 px-4 text-sm font-bold bg-accent-yellow text-black rounded hover:bg-accent-yellow/90 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+          className="w-full flex items-center justify-center gap-2 py-2.5 px-4 text-sm font-bold bg-accent-yellow text-black rounded hover:bg-gray-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {isLoading ? (
             <>

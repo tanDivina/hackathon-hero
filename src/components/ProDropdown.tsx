@@ -35,7 +35,7 @@ export function ProDropdown() {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="px-6 py-2.5 text-sm font-bold tracking-wide transition-all rounded bg-accent-yellow text-black hover:bg-yellow-300 flex items-center gap-2"
+        className="px-6 py-2.5 text-sm font-bold tracking-wide transition-all rounded bg-accent-yellow text-black hover:bg-gray-200 flex items-center gap-2"
       >
         <Crown size={16} />
         PRO ACTIVE

@@ -125,7 +125,7 @@ export function LoginForm({ onSuccess, onSwitchToSignup }: LoginFormProps) {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-accent-yellow text-black py-3 px-4 font-bold tracking-wide hover:bg-yellow-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              className="w-full bg-accent-yellow text-black py-3 px-4 font-bold tracking-wide hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
               {loading ? 'SENDING...' : 'SEND RESET LINK'}
             </button>
@@ -227,7 +227,7 @@ export function LoginForm({ onSuccess, onSwitchToSignup }: LoginFormProps) {
             Don't have an account?{' '}
             <button
               onClick={onSwitchToSignup}
-              className="text-accent-yellow hover:text-yellow-400 font-bold transition-colors"
+              className="text-accent-yellow hover:text-gray-300 font-bold transition-colors"
             >
               SIGN UP
             </button>

@@ -75,7 +75,7 @@ export function StripeCheckout({ amount, tier, onSuccess, onError }: StripeCheck
       <button
         onClick={handleCheckout}
         disabled={loading}
-        className="w-full bg-accent-yellow text-black font-bold py-3 hover:bg-yellow-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-base tracking-wide uppercase flex items-center justify-center gap-2"
+        className="w-full bg-accent-yellow text-black font-bold py-3 hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-base tracking-wide uppercase flex items-center justify-center gap-2"
       >
         {loading ? (
           <>

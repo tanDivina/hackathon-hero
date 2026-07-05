@@ -64,7 +64,7 @@ export const Footer: React.FC = () => {
                 <button
                   type="submit"
                   disabled={status === 'loading' || status === 'success'}
-                  className="bg-accent-yellow text-black px-6 py-3 font-bold hover:bg-yellow-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="bg-accent-yellow text-black px-6 py-3 font-bold hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   {status === 'loading' ? (
                     'SENDING...'
@@ -110,9 +110,9 @@ export const Footer: React.FC = () => {
                 href="https://www.youtube.com/@DorienVibecodes"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 bg-black border border-gray-800 px-4 py-3 hover:border-accent-yellow hover:bg-accent-yellow/10 transition-colors group"
+                className="flex items-center gap-2 bg-black border border-gray-800 px-4 py-3 hover:border-gray-500 hover:bg-white/5 transition-colors group"
               >
-                <Youtube size={20} className="text-gray-400 group-hover:text-accent-yellow transition-colors" />
+                <Youtube size={20} className="text-gray-400 group-hover:text-gray-300 transition-colors" />
                 <span className="text-sm text-gray-400 group-hover:text-white transition-colors font-mono">YouTube</span>
               </a>
 
@@ -120,9 +120,9 @@ export const Footer: React.FC = () => {
                 href="https://x.com/DorienVibecodes"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 bg-black border border-gray-800 px-4 py-3 hover:border-accent-yellow hover:bg-accent-yellow/10 transition-colors group"
+                className="flex items-center gap-2 bg-black border border-gray-800 px-4 py-3 hover:border-gray-500 hover:bg-white/5 transition-colors group"
               >
-                <Twitter size={20} className="text-gray-400 group-hover:text-accent-yellow transition-colors" />
+                <Twitter size={20} className="text-gray-400 group-hover:text-gray-300 transition-colors" />
                 <span className="text-sm text-gray-400 group-hover:text-white transition-colors font-mono">Twitter</span>
               </a>
 
@@ -130,9 +130,9 @@ export const Footer: React.FC = () => {
                 href="https://www.linkedin.com/in/dorien-van-den-abbeele-136170b/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 bg-black border border-gray-800 px-4 py-3 hover:border-accent-yellow hover:bg-accent-yellow/10 transition-colors group"
+                className="flex items-center gap-2 bg-black border border-gray-800 px-4 py-3 hover:border-gray-500 hover:bg-white/5 transition-colors group"
               >
-                <Linkedin size={20} className="text-gray-400 group-hover:text-accent-yellow transition-colors" />
+                <Linkedin size={20} className="text-gray-400 group-hover:text-gray-300 transition-colors" />
                 <span className="text-sm text-gray-400 group-hover:text-white transition-colors font-mono">LinkedIn</span>
               </a>
             </div>

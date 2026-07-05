@@ -61,7 +61,7 @@ export const ExitIntentPopup: React.FC<ExitIntentPopupProps> = ({
           <div className="space-y-3">
             <button
               onClick={onGetAccess}
-              className="w-full bg-accent-yellow text-black font-bold py-4 text-base tracking-wide uppercase hover:bg-yellow-300 transition-all transform hover:scale-[1.02]"
+              className="w-full bg-accent-yellow text-black font-bold py-4 text-base tracking-wide uppercase hover:bg-gray-200 transition-all transform hover:scale-[1.02]"
             >
               GET FREE BETA ACCESS NOW
             </button>

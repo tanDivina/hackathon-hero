@@ -182,7 +182,7 @@ export const ProfilePage: React.FC = () => {
                       {!isChangingPassword ? (
                         <button
                           onClick={() => setIsChangingPassword(true)}
-                          className="text-accent-yellow text-xs font-bold hover:text-yellow-300 transition-colors uppercase tracking-wide"
+                          className="text-accent-yellow text-xs font-bold hover:text-gray-300 transition-colors uppercase tracking-wide"
                         >
                           Change Password
                         </button>
@@ -230,7 +230,7 @@ export const ProfilePage: React.FC = () => {
                           <div className="flex gap-2">
                             <button
                               onClick={handlePasswordChange}
-                              className="bg-accent-yellow text-black px-4 py-2 text-xs font-bold hover:bg-yellow-300 transition-colors uppercase tracking-wide"
+                              className="bg-accent-yellow text-black px-4 py-2 text-xs font-bold hover:bg-gray-200 transition-colors uppercase tracking-wide"
                             >
                               Update Password
                             </button>
@@ -320,7 +320,7 @@ export const ProfilePage: React.FC = () => {
                   <p className="text-gray-500 mb-4">No active subscription</p>
                   <button
                     onClick={() => navigate('/pricing')}
-                    className="bg-accent-yellow text-black px-6 py-2 font-bold hover:bg-yellow-300 transition-colors"
+                    className="bg-accent-yellow text-black px-6 py-2 font-bold hover:bg-gray-200 transition-colors"
                   >
                     UPGRADE TO PRO
                   </button>

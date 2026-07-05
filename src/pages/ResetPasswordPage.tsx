@@ -95,7 +95,7 @@ export function ResetPasswordPage() {
           </p>
           <button
             onClick={() => navigate('/login')}
-            className="bg-accent-yellow text-black font-bold py-3 px-6 hover:bg-yellow-400 transition-colors tracking-wide uppercase text-sm"
+            className="bg-accent-yellow text-black font-bold py-3 px-6 hover:bg-gray-200 transition-colors tracking-wide uppercase text-sm"
           >
             BACK TO SIGN IN
           </button>
@@ -195,7 +195,7 @@ export function ResetPasswordPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-accent-yellow text-black py-3 px-4 font-bold tracking-wide hover:bg-yellow-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all uppercase"
+              className="w-full bg-accent-yellow text-black py-3 px-4 font-bold tracking-wide hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all uppercase"
             >
               {loading ? 'UPDATING...' : 'SET NEW PASSWORD'}
             </button>

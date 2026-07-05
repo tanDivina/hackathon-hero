@@ -103,7 +103,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDashboard, isPr
             {isPro ? (
               <button
                 onClick={onEnterDashboard}
-                className="px-5 py-2 bg-accent-yellow text-black text-sm font-bold tracking-wide hover:bg-yellow-300 transition-colors"
+                className="px-5 py-2 bg-accent-yellow text-black text-sm font-bold tracking-wide hover:bg-gray-200 transition-colors"
               >
                 OPEN DASHBOARD
               </button>
@@ -117,7 +117,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDashboard, isPr
                 </button>
                 <button
                   onClick={scrollToPricing}
-                  className="px-5 py-2 bg-accent-yellow text-black text-sm font-bold tracking-wide hover:bg-yellow-300 transition-colors"
+                  className="px-5 py-2 bg-accent-yellow text-black text-sm font-bold tracking-wide hover:bg-gray-200 transition-colors"
                 >
                   GET ACCESS
                 </button>
@@ -150,7 +150,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDashboard, isPr
             {isPro ? (
               <button
                 onClick={onEnterDashboard}
-                className="px-8 py-4 bg-accent-yellow text-black font-bold text-base tracking-wide hover:bg-yellow-300 transition-colors flex items-center gap-2"
+                className="px-8 py-4 bg-accent-yellow text-black font-bold text-base tracking-wide hover:bg-gray-200 transition-colors flex items-center gap-2"
               >
                 OPEN YOUR DASHBOARD <ChevronRight size={18} />
               </button>
@@ -158,7 +158,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDashboard, isPr
               <>
                 <button
                   onClick={scrollToPricing}
-                  className="px-8 py-4 bg-accent-yellow text-black font-bold text-base tracking-wide hover:bg-yellow-300 transition-colors flex items-center gap-2"
+                  className="px-8 py-4 bg-accent-yellow text-black font-bold text-base tracking-wide hover:bg-gray-200 transition-colors flex items-center gap-2"
                 >
                   GET INSTANT ACCESS <ChevronRight size={18} />
                 </button>
@@ -204,7 +204,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDashboard, isPr
                 key={title}
                 className="bg-black p-8 hover:bg-gray-950 transition-colors group"
               >
-                <div className="w-10 h-10 border border-gray-800 flex items-center justify-center mb-5 group-hover:border-accent-yellow/50 transition-colors">
+                <div className="w-10 h-10 border border-gray-800 flex items-center justify-center mb-5 group-hover:border-gray-500 transition-colors">
                   <Icon size={18} className="text-accent-yellow" strokeWidth={1.5} />
                 </div>
                 <h3 className="font-bold text-white mb-2 tracking-tight">{title}</h3>
@@ -256,7 +256,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDashboard, isPr
                 </div>
                 <button
                   onClick={scrollToPricing}
-                  className="px-8 py-3 bg-accent-yellow text-black font-bold text-sm tracking-wide hover:bg-yellow-300 transition-colors flex items-center gap-2"
+                  className="px-8 py-3 bg-accent-yellow text-black font-bold text-sm tracking-wide hover:bg-gray-200 transition-colors flex items-center gap-2"
                 >
                   UNLOCK NOW <ChevronRight size={16} />
                 </button>
@@ -275,7 +275,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDashboard, isPr
             <p className="text-gray-400 mb-8">Your full command center is ready.</p>
             <button
               onClick={onEnterDashboard}
-              className="px-10 py-4 bg-accent-yellow text-black font-bold text-base tracking-wide hover:bg-yellow-300 transition-colors flex items-center gap-2 mx-auto"
+              className="px-10 py-4 bg-accent-yellow text-black font-bold text-base tracking-wide hover:bg-gray-200 transition-colors flex items-center gap-2 mx-auto"
             >
               OPEN DASHBOARD <ChevronRight size={18} />
             </button>
@@ -390,7 +390,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDashboard, isPr
                 <div>
                   <button
                     onClick={() => setShowCheckout(true)}
-                    className="w-full bg-accent-yellow text-black font-bold py-4 text-base tracking-wide hover:bg-yellow-300 transition-colors flex items-center justify-center gap-2"
+                    className="w-full bg-accent-yellow text-black font-bold py-4 text-base tracking-wide hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
                   >
                     <Zap size={18} />
                     GET {selectedTier === 'lifetime' ? 'LIFETIME' : 'SEASON'} ACCESS — {selectedTier === 'lifetime' ? '$39' : '$9'}

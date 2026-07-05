@@ -141,7 +141,7 @@ export const ProModal: React.FC<ProModalProps> = ({ isOpen, onClose }) => {
         ) : (
           <button
             onClick={() => setShowStripe(true)}
-            className="w-full bg-accent-yellow text-black font-bold py-3 hover:bg-yellow-300 transition-colors text-base tracking-wide uppercase"
+            className="w-full bg-accent-yellow text-black font-bold py-3 hover:bg-gray-200 transition-colors text-base tracking-wide uppercase"
           >
             GET ACCESS — {selectedTier === 'lifetime' ? '$39' : '$9'}
           </button>

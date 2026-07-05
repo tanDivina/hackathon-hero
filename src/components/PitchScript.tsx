@@ -562,7 +562,7 @@ export const PitchScript: React.FC<PitchScriptProps> = ({ onGenerate, isPro, pro
             <button
               onClick={handleGenerate}
               disabled={!idea.trim() || isGenerating || !!editingSection || fullScriptMode}
-              className="bg-accent-yellow text-black font-bold py-3 text-xs tracking-wide hover:bg-accent-green transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              className="bg-accent-yellow text-black font-bold py-3 text-xs tracking-wide hover:bg-gray-200 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
               title="Click to generate a new script based on your current idea"
             >
               {isGenerating ? 'GENERATING...' : 'GENERATE'}
@@ -570,7 +570,7 @@ export const PitchScript: React.FC<PitchScriptProps> = ({ onGenerate, isPro, pro
             <button
               onClick={handleCreateManual}
               disabled={isGenerating || !!editingSection || fullScriptMode}
-              className="border-2 border-accent-yellow text-accent-yellow font-bold py-3 text-xs tracking-wide hover:bg-accent-yellow hover:text-black transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              className="border-2 border-accent-yellow text-accent-yellow font-bold py-3 text-xs tracking-wide hover:bg-gray-200 hover:text-black transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
               title="Create empty script sections to write your own"
             >
               BY SECTION
@@ -614,7 +614,7 @@ export const PitchScript: React.FC<PitchScriptProps> = ({ onGenerate, isPro, pro
                       setFullScriptContent('');
                     }}
                     disabled={isSaving}
-                    className="flex items-center gap-2 px-3 py-1.5 border border-gray-800 text-gray-400 hover:text-white hover:border-gray-700 transition-colors text-xs font-mono disabled:opacity-30"
+                    className="flex items-center gap-2 px-3 py-1.5 bg-gray-800 text-gray-400 hover:text-white hover:border-gray-700 transition-colors text-xs font-mono disabled:opacity-30"
                   >
                     <X size={14} />
                     CANCEL
@@ -663,7 +663,7 @@ export const PitchScript: React.FC<PitchScriptProps> = ({ onGenerate, isPro, pro
                     <button
                       onClick={handleCancelEdit}
                       disabled={isSaving}
-                      className="flex items-center gap-2 px-3 py-1.5 border border-gray-800 text-gray-400 hover:text-white hover:border-gray-700 transition-colors text-xs font-mono disabled:opacity-30"
+                      className="flex items-center gap-2 px-3 py-1.5 bg-gray-800 text-gray-400 hover:text-white hover:border-gray-700 transition-colors text-xs font-mono disabled:opacity-30"
                     >
                       <X size={14} />
                       CANCEL
@@ -671,7 +671,7 @@ export const PitchScript: React.FC<PitchScriptProps> = ({ onGenerate, isPro, pro
                     <button
                       onClick={handleSaveEdit}
                       disabled={isSaving}
-                      className="flex items-center gap-2 px-3 py-1.5 bg-accent-yellow text-black hover:bg-accent-green transition-colors text-xs font-mono disabled:opacity-30"
+                      className="flex items-center gap-2 px-3 py-1.5 bg-gray-200 text-black hover:bg-gray-300 transition-colors text-xs font-mono disabled:opacity-30"
                     >
                       <Save size={14} />
                       {isSaving ? 'SAVING...' : 'SAVE'}
@@ -691,7 +691,7 @@ export const PitchScript: React.FC<PitchScriptProps> = ({ onGenerate, isPro, pro
                     </button>
                     <button
                       onClick={handleDownload}
-                      className="flex items-center gap-2 px-3 py-1.5 border border-gray-800 text-gray-400 hover:text-white hover:border-gray-700 transition-colors text-xs font-mono"
+                      className="flex items-center gap-2 px-3 py-1.5 bg-gray-800 text-gray-400 hover:bg-gray-200 hover:text-black transition-colors text-xs font-mono"
                     >
                       <Download size={14} />
                       DOWNLOAD

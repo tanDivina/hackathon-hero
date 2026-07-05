@@ -340,7 +340,7 @@ export const IdeaGenerator: React.FC<IdeaGeneratorProps> = ({
                 <button
                   onClick={handleGenerateCandidates}
                   disabled={isGenerating}
-                  className="w-full bg-accent-yellow text-black font-bold py-3 text-sm tracking-wide hover:bg-accent-green transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="w-full bg-accent-yellow text-black font-bold py-3 text-sm tracking-wide hover:bg-gray-200 transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {isGenerating ? (
                     <>
@@ -380,7 +380,7 @@ export const IdeaGenerator: React.FC<IdeaGeneratorProps> = ({
                   <button
                     onClick={handleExpandCustomIdea}
                     disabled={!customIdea.trim() || isExpandingCustom}
-                    className="w-full bg-black/50 border border-gray-800 hover:border-accent-yellow text-gray-400 hover:text-accent-yellow font-bold py-2 text-xs tracking-wide transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="w-full bg-black/50 border border-gray-800 hover:border-gray-500 text-gray-400 hover:text-gray-300 font-bold py-2 text-xs tracking-wide transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {isExpandingCustom ? (
                       <>
@@ -409,7 +409,7 @@ export const IdeaGenerator: React.FC<IdeaGeneratorProps> = ({
                   </span>
                   <button
                     onClick={handleBackToInitial}
-                    className="flex items-center gap-1.5 px-4 py-1.5 bg-accent-yellow/10 border-2 border-accent-yellow text-accent-yellow hover:bg-accent-yellow hover:text-black transition-all text-xs font-bold"
+                    className="flex items-center gap-1.5 px-4 py-1.5 bg-white/5 border-2 border-gray-500 text-gray-300 hover:bg-gray-200 hover:text-black transition-all text-xs font-bold"
                   >
                     <ArrowLeft size={14} /> EDIT DIRECTION
                   </button>
@@ -455,7 +455,7 @@ export const IdeaGenerator: React.FC<IdeaGeneratorProps> = ({
                       <button
                         onClick={() => handleSelectCandidate(candidate)}
                         disabled={isGenerating}
-                        className="w-full bg-accent-yellow/10 border border-accent-yellow/30 text-accent-yellow font-bold py-2 text-xs tracking-wide hover:bg-accent-yellow hover:text-black transition-colors disabled:opacity-30 flex items-center justify-center gap-2"
+                        className="w-full bg-white/5 border border-gray-500/30 text-gray-400 font-bold py-2 text-xs tracking-wide hover:bg-gray-200 hover:text-black transition-colors disabled:opacity-30 flex items-center justify-center gap-2"
                       >
                         {isGenerating && selectedCandidateId === candidate.id ? (
                           <>
@@ -478,7 +478,7 @@ export const IdeaGenerator: React.FC<IdeaGeneratorProps> = ({
                 <button
                   onClick={handleGenerateCandidates}
                   disabled={isGenerating}
-                  className="w-full bg-black/50 border border-gray-800 hover:border-accent-yellow text-gray-400 hover:text-accent-yellow font-bold py-2 text-xs tracking-wide transition-colors disabled:opacity-30 flex items-center justify-center gap-2 mt-4"
+                  className="w-full bg-black/50 border border-gray-800 hover:border-gray-500 text-gray-400 hover:text-gray-300 font-bold py-2 text-xs tracking-wide transition-colors disabled:opacity-30 flex items-center justify-center gap-2 mt-4"
                 >
                   <RefreshCw size={14} />
                   REGENERATE 3 NEW IDEAS
@@ -501,7 +501,7 @@ export const IdeaGenerator: React.FC<IdeaGeneratorProps> = ({
                     </button>
                     <button
                       onClick={handleBackToCandidates}
-                      className="flex items-center gap-1.5 px-4 py-1.5 bg-accent-yellow/10 border-2 border-accent-yellow text-accent-yellow hover:bg-accent-yellow hover:text-black transition-all text-xs font-bold"
+                      className="flex items-center gap-1.5 px-4 py-1.5 bg-white/5 border-2 border-gray-500 text-gray-300 hover:bg-gray-200 hover:text-black transition-all text-xs font-bold"
                     >
                       <ArrowLeft size={14} /> CANDIDATE IDEAS
                     </button>
@@ -560,7 +560,7 @@ export const IdeaGenerator: React.FC<IdeaGeneratorProps> = ({
                             });
                           }
                         }}
-                        className="px-4 py-2 bg-accent-yellow text-black font-bold text-xs hover:bg-accent-green transition-colors"
+                        className="px-4 py-2 bg-accent-yellow text-black font-bold text-xs hover:bg-gray-200 transition-colors"
                       >
                         SAVE CHANGES
                       </button>

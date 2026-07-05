@@ -166,7 +166,7 @@ export const RevisionHistory: React.FC<RevisionHistoryProps> = ({
                     {renderContentPreview(revision.content)}
                     <button
                       onClick={() => handleRestore(revision)}
-                      className="mt-2 flex items-center gap-1 px-2 py-1 text-xs bg-accent-yellow/10 text-accent-yellow rounded hover:bg-accent-yellow/20 transition-colors"
+                      className="mt-2 flex items-center gap-1 px-2 py-1 text-xs bg-white/5 text-gray-300 rounded hover:bg-white/10 transition-colors"
                     >
                       <RotateCcw size={12} />
                       RESTORE THIS VERSION

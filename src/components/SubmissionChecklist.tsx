@@ -125,7 +125,7 @@ Focus on: video requirements, documentation, deployment, source code, team regis
             <button
               onClick={generateFromRules}
               disabled={isGenerating}
-              className="flex items-center gap-1 px-3 py-1.5 text-xs bg-accent-yellow/10 text-accent-yellow rounded hover:bg-accent-yellow/20 transition-colors disabled:opacity-50"
+              className="flex items-center gap-1 px-3 py-1.5 text-xs bg-white/5 text-gray-300 rounded hover:bg-white/10 transition-colors disabled:opacity-50"
             >
               {isGenerating ? (
                 <Loader2 size={14} className="animate-spin" />
@@ -139,7 +139,7 @@ Focus on: video requirements, documentation, deployment, source code, team regis
 
         <div className="w-full bg-gray-800 rounded-full h-2">
           <div
-            className="bg-accent-yellow h-2 rounded-full transition-all duration-300"
+            className="bg-gray-200 h-2 rounded-full transition-all duration-300"
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -173,7 +173,7 @@ Focus on: video requirements, documentation, deployment, source code, team regis
                   {item.text}
                 </span>
                 {item.source === 'auto' && (
-                  <span className="text-[10px] px-1.5 py-0.5 bg-accent-yellow/20 text-accent-yellow rounded">
+                  <span className="text-[10px] px-1.5 py-0.5 bg-white/5 text-gray-300 rounded">
                     AI
                   </span>
                 )}
