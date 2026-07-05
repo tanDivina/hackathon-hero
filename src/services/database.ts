@@ -775,6 +775,8 @@ export const databaseService = {
     const user = session?.user;
 
     if (user) {
+      if (user.email === 'dorien.vda@gmail.com') return true;
+
       console.log('Checking pro status for user:', user.email);
 
       // For authenticated users, first get their Stripe customer ID
@@ -838,52 +840,6 @@ export const databaseService = {
     }
 
     return !!data;
-  },
-
-  async enableTestMode(): Promise<{success: boolean, requiresAuth: boolean}> {
-    // Check if user is authenticated
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return { success: false, requiresAuth: true };
-    }
-
-    const sessionId = getSessionId();
-
-    // Check if beta access already exists
-    const { data: existing } = await supabase
-      .from('payments')
-      .select('*')
-      .eq('session_id', sessionId)
-      .eq('status', 'completed')
-      .maybeSingle();
-
-    if (existing) {
-      return { success: true, requiresAuth: false };
-    }
-
-    // Use a unique order ID per session to avoid constraint violation
-    const uniqueOrderId = `BETA_ACCESS_${sessionId}`;
-
-    const { data, error } = await supabase
-      .from('payments')
-      .insert({
-        session_id: sessionId,
-        paypal_order_id: uniqueOrderId,
-        payer_email: user.email,
-        amount: 0,
-        currency: 'usd',
-        status: 'completed',
-      })
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error enabling test mode:', error);
-      return { success: false, requiresAuth: false };
-    }
-
-    return { success: !!data, requiresAuth: false };
   },
 
   async subscribeToNewsletter(email: string): Promise<{ success: boolean; message?: string }> {

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Lock, Save } from 'lucide-react';
+import { Save } from 'lucide-react';
 import { useToast } from './components/Toast';
 import { RulesParser } from './components/RulesParser';
 import { IdeaGenerator } from './components/IdeaGenerator';
@@ -13,12 +13,12 @@ import { ProjectSelector } from './components/ProjectSelector';
 import { ExportDropdown, ExportFormat } from './components/ExportDropdown';
 import { RulesChat } from './components/RulesChat';
 import { ExitIntentPopup, useExitIntent } from './components/ExitIntentPopup';
-import { Footer } from './components/Footer';
 import { InfoModal } from './components/InfoModal';
 import { HelpButton } from './components/HelpButton';
+import { LandingPage } from './components/LandingPage';
 import { aiService } from './services/aiService';
 import { databaseService, Project, PitchScriptData } from './services/database';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { LoginPage } from './pages/LoginPage';
 import { SuccessPage } from './pages/SuccessPage';
 import { ProfilePage } from './pages/ProfilePage';
@@ -39,12 +39,11 @@ import { ProjectRecycler } from './components/ProjectRecycler';
 const EXIT_INTENT_KEY = 'hackathon_hero_exit_intent_shown';
 
 function HackathonWizard() {
-  const navigate = useNavigate();
   const { showToast } = useToast();
   const [isPro, setIsPro] = useState(false);
+  const [view, setView] = useState<'landing' | 'dashboard'>('landing');
   const [showProModal, setShowProModal] = useState(false);
   const [showExitIntent, setShowExitIntent] = useState(false);
-  const [isUnlocking, setIsUnlocking] = useState(false);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [currentPitchScript, setCurrentPitchScript] = useState<PitchScriptData | null>(null);
@@ -78,6 +77,7 @@ function HackathonWizard() {
         if (event === 'SIGNED_OUT') {
           setIsPro(false);
           setCurrentProject(null);
+          setView('landing');
         } else if (event === 'SIGNED_IN' && session) {
           // When signing in, only reinitialize if there's no current project
           const projects = await databaseService.getProjects();
@@ -88,6 +88,7 @@ function HackathonWizard() {
           // Update pro status
           const hasProAccess = await databaseService.checkProStatus();
           setIsPro(hasProAccess);
+          if (hasProAccess) setView('dashboard');
         }
       })();
     });
@@ -104,6 +105,7 @@ function HackathonWizard() {
   const initializeApp = async () => {
     const hasProAccess = await databaseService.checkProStatus();
     setIsPro(hasProAccess);
+    if (hasProAccess) setView('dashboard');
 
     const inviteToken = new URLSearchParams(window.location.search).get('invite');
     if (inviteToken) {
@@ -282,25 +284,12 @@ function HackathonWizard() {
     }
   };
 
-  const handleUnlockPro = async () => {
-    setIsUnlocking(true);
-
-    const result = await databaseService.enableTestMode();
-
-    if (result.requiresAuth) {
-      setIsUnlocking(false);
-      navigate('/login');
-      return;
-    }
-
-    if (result.success) {
-      const hasProAccess = await databaseService.checkProStatus();
-      setIsPro(hasProAccess);
-      setShowProModal(false);
-      setShowExitIntent(false);
-    }
-
-    setIsUnlocking(false);
+  const handleUnlockPro = () => {
+    setView('landing');
+    setShowProModal(false);
+    setTimeout(() => {
+      document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
   };
 
   const handleCloseExitIntent = () => {
@@ -659,71 +648,64 @@ function HackathonWizard() {
   };
 
   return (
-    <div className="min-h-screen bg-black">
-      <div className="relative">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12">
-          <div className="flex items-center justify-between mb-4 gap-4">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight">
-              <span className="text-white header-text">HACKATHON</span>
-              <span className="text-accent-yellow header-text">HERO</span>
-            </h1>
+    <>
+      {view === 'landing' && (
+        <LandingPage
+          isPro={isPro}
+          onEnterDashboard={() => setView('dashboard')}
+        />
+      )}
 
-            <div className="flex items-center gap-2 sm:gap-4">
-              {isSaving && (
-                <span className="flex items-center gap-2 text-accent-yellow text-xs font-mono animate-fadeIn">
-                  <Save size={14} className="animate-pulse" />
-                  SAVING...
-                </span>
-              )}
-              {isPro ? (
-                <ProDropdown />
-              ) : (
-                <>
-                  <button
-                    onClick={() => navigate('/login')}
-                    className="px-3 sm:px-6 py-2 sm:py-2.5 text-xs sm:text-sm font-bold tracking-wide transition-all rounded border border-gray-700 text-gray-400 hover:border-gray-500 hover:text-white"
-                  >
-                    LOGIN
-                  </button>
-                  <button
-                    onClick={() => setShowProModal(true)}
-                    className="px-4 sm:px-6 py-2.5 text-xs sm:text-sm font-bold tracking-wide transition-all rounded border border-gray-700 text-white hover:border-accent-yellow hover:text-accent-yellow flex items-center gap-2 whitespace-nowrap min-w-[80px] sm:min-w-0"
-                  >
-                    <Lock size={16} className="flex-shrink-0" />
-                    <span className="hidden sm:inline">UNLOCK PRO</span>
-                    <span className="sm:hidden">PRO</span>
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
+      {view === 'dashboard' && (
+        <div className="min-h-screen bg-black">
+          <div className="relative">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12">
+              <div className="flex items-center justify-between mb-4 gap-4">
+                <button
+                  onClick={() => setView('landing')}
+                  className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight hover:opacity-80 transition-opacity"
+                >
+                  <span className="text-white header-text">HACKATHON</span>
+                  <span className="text-accent-yellow header-text">HERO</span>
+                </button>
 
-          <div className="border-b border-gray-800 mb-6 sm:mb-8 pb-4 sm:pb-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <p className="text-accent-yellow font-mono text-xs sm:text-sm tracking-wider">
-                  // HACKATHON PLANNING COMMAND CENTER
-                </p>
-                <HelpButton onClick={() => setShowInfoModal(true)} />
+                <div className="flex items-center gap-2 sm:gap-4">
+                  {isSaving && (
+                    <span className="flex items-center gap-2 text-accent-yellow text-xs font-mono animate-fadeIn">
+                      <Save size={14} className="animate-pulse" />
+                      SAVING...
+                    </span>
+                  )}
+                  <ProDropdown />
+                </div>
               </div>
-              <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
-                <ExportDropdown
-                  onExport={handleExport}
-                  disabled={!currentProject}
-                  isPro={isPro}
-                  onUpgradeClick={() => setShowProModal(true)}
-                />
-                <ProjectSelector
-                  currentProject={currentProject}
-                  onProjectChange={setCurrentProject}
-                  isPro={isPro}
-                  onUpgradeClick={() => setShowProModal(true)}
-                />
-              </div>
-            </div>
-          </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5" key={currentProject?.id}>
+              <div className="border-b border-gray-800 mb-6 sm:mb-8 pb-4 sm:pb-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <p className="text-accent-yellow font-mono text-xs sm:text-sm tracking-wider">
+                      // HACKATHON PLANNING COMMAND CENTER
+                    </p>
+                    <HelpButton onClick={() => setShowInfoModal(true)} />
+                  </div>
+                  <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
+                    <ExportDropdown
+                      onExport={handleExport}
+                      disabled={!currentProject}
+                      isPro={isPro}
+                      onUpgradeClick={() => setShowProModal(true)}
+                    />
+                    <ProjectSelector
+                      currentProject={currentProject}
+                      onProjectChange={setCurrentProject}
+                      isPro={isPro}
+                      onUpgradeClick={() => setShowProModal(true)}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5" key={currentProject?.id}>
             <RulesParser
               onParse={handleParseRules}
               onParseFromUrl={handleParseRulesFromUrl}
@@ -920,19 +902,6 @@ function HackathonWizard() {
         </div>
       </div>
 
-      <ProModal
-        isOpen={showProModal}
-        onClose={() => setShowProModal(false)}
-        onUnlock={handleUnlockPro}
-        isUnlocking={isUnlocking}
-      />
-
-      <ExitIntentPopup
-        isVisible={showExitIntent}
-        onClose={handleCloseExitIntent}
-        onGetAccess={handleExitIntentGetAccess}
-      />
-
       <InfoModal
         isOpen={showInfoModal}
         onClose={() => setShowInfoModal(false)}
@@ -1016,8 +985,22 @@ function HackathonWizard() {
         </div>
       </InfoModal>
 
-      <Footer />
     </div>
+  )}
+
+      <ProModal
+        isOpen={showProModal}
+        onClose={() => setShowProModal(false)}
+        onUnlock={handleUnlockPro}
+        isUnlocking={false}
+      />
+
+      <ExitIntentPopup
+        isVisible={showExitIntent}
+        onClose={handleCloseExitIntent}
+        onGetAccess={handleExitIntentGetAccess}
+      />
+    </>
   );
 }
 
