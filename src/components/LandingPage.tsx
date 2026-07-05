@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Zap, Brain, Target, Video, FileText, Trophy,
   ChevronRight, Lock, Star, Check, ArrowDown,
-  Users, Clock, Layers, BarChart3
+  Users, Clock, Layers, BarChart3, RefreshCcw
 } from 'lucide-react';
 import { StripeCheckout } from './StripeCheckout';
 import { Footer } from './Footer';
@@ -216,6 +216,32 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDashboard, isPr
                 <p className="text-sm text-gray-500 leading-relaxed">{desc}</p>
               </div>
             ))}
+          </div>
+
+          {/* Featured: Project Recycler */}
+          <div className="mt-px bg-gray-900 p-px">
+            <div className="bg-black p-8 sm:p-10 hover:bg-gray-950 transition-colors group relative overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent-yellow/40 to-transparent" />
+              <div className="flex flex-col sm:flex-row sm:items-center gap-6 sm:gap-10">
+                <div className="flex-shrink-0 flex items-center gap-4">
+                  <div className="w-12 h-12 border border-gray-700 group-hover:border-accent-yellow/50 flex items-center justify-center transition-colors">
+                    <RefreshCcw size={22} className="text-accent-yellow" strokeWidth={1.5} />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-black text-white tracking-tight text-lg">Project Recycler</h3>
+                      <span className="text-xs font-bold px-2 py-0.5 bg-accent-yellow text-black tracking-wide">PRO TIP</span>
+                    </div>
+                    <p className="text-xs font-mono text-gray-600 tracking-widest">COMPETITIVE ADVANTAGE</p>
+                  </div>
+                </div>
+                <p className="text-gray-400 leading-relaxed sm:border-l sm:border-gray-800 sm:pl-10">
+                  Paste a GitHub repo and hackathon rules — we tell you instantly if your existing project
+                  is allowed, how compatible it is, and exactly what to change to qualify. Stop starting
+                  from zero when you already have winning code.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
