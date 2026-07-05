@@ -70,7 +70,7 @@ function HackathonWizard() {
   useExitIntent(handleExitIntent);
 
   useEffect(() => {
-    initializeApp();
+    checkProStatus();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       (async () => {
@@ -79,16 +79,12 @@ function HackathonWizard() {
           setCurrentProject(null);
           setView('landing');
         } else if (event === 'SIGNED_IN' && session) {
-          // When signing in, only reinitialize if there's no current project
-          const projects = await databaseService.getProjects();
-          if (projects.length > 0) {
-            // Check if we need to set a project
-            setCurrentProject(prev => prev || projects[0]);
-          }
-          // Update pro status
           const hasProAccess = await databaseService.checkProStatus();
           setIsPro(hasProAccess);
-          if (hasProAccess) setView('dashboard');
+          if (hasProAccess) {
+            setView('dashboard');
+            await initializeDashboard();
+          }
         }
       })();
     });
@@ -102,11 +98,16 @@ function HackathonWizard() {
     }
   }, [currentProject]);
 
-  const initializeApp = async () => {
+  const checkProStatus = async () => {
     const hasProAccess = await databaseService.checkProStatus();
     setIsPro(hasProAccess);
-    if (hasProAccess) setView('dashboard');
+    if (hasProAccess) {
+      setView('dashboard');
+      await initializeDashboard();
+    }
+  };
 
+  const initializeDashboard = async () => {
     const inviteToken = new URLSearchParams(window.location.search).get('invite');
     if (inviteToken) {
       const result = await databaseService.acceptInvite(inviteToken);
@@ -130,8 +131,8 @@ function HackathonWizard() {
       if (newProject) {
         setCurrentProject(newProject);
       }
-    } else if (!currentProject) {
-      setCurrentProject(projects[0]);
+    } else {
+      setCurrentProject(prev => prev || projects[0]);
     }
   };
 
@@ -652,7 +653,10 @@ function HackathonWizard() {
       {view === 'landing' && (
         <LandingPage
           isPro={isPro}
-          onEnterDashboard={() => setView('dashboard')}
+          onEnterDashboard={async () => {
+            setView('dashboard');
+            if (!currentProject) await initializeDashboard();
+          }}
         />
       )}
 
