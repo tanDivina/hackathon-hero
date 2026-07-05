@@ -98,7 +98,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDashboard, isPr
             style={{ fontSize: scrolled ? '1.125rem' : '2.5rem', lineHeight: 1 }}
           >
             <Trophy
-              className="text-accent-yellow flex-shrink-0 transition-all duration-300"
+              className="text-accent-yellow flex-shrink-0 transition-all duration-300 translate-y-0.5"
               style={{ width: scrolled ? '1.125rem' : '2rem', height: scrolled ? '1.125rem' : '2rem' }}
               strokeWidth={2}
             />
