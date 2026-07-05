@@ -142,7 +142,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDashboard, isPr
           </h1>
 
           <p className="text-lg sm:text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed mb-10">
-            Your AI command center for every stage of a hackathon — from rules analysis to
+            Your AI command center for every stage of a hackathon: from rules analysis to
             idea generation, pitch scripts, and demo videos. Stop winging it. Start winning.
           </p>
 
