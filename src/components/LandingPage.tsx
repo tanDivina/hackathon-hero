@@ -94,12 +94,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDashboard, isPr
           style={{ height: scrolled ? '56px' : '80px' }}
         >
           <span
-            className="font-black tracking-tight transition-all duration-300 flex items-end gap-2"
+            className="font-black tracking-tight transition-all duration-300 flex items-center gap-2"
             style={{ fontSize: scrolled ? '1.125rem' : '2.5rem', lineHeight: 1 }}
           >
             <Trophy
               className="text-accent-yellow flex-shrink-0 transition-all duration-300"
-              style={{ width: scrolled ? '1.125rem' : '2rem', height: scrolled ? '1.125rem' : '2rem' }}
+              style={{ width: scrolled ? '1.5rem' : '3rem', height: scrolled ? '1.5rem' : '3rem' }}
               strokeWidth={2}
             />
             HACKATHON<span className="text-accent-yellow header-text">HERO</span>
