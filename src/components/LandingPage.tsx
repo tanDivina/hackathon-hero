@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Zap, Brain, Target, Video, FileText, Trophy,
@@ -60,6 +60,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDashboard, isPr
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 60);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   const scrollToPricing = () => {
     document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
@@ -75,9 +82,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDashboard, isPr
   return (
     <div className="min-h-screen bg-black text-white">
       {/* ── Nav ── */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-md border-b border-gray-900">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <span className="font-black text-xl tracking-tight">
+      <nav className={`fixed top-0 left-0 right-0 z-50 backdrop-blur-md border-b transition-all duration-300 ${
+        scrolled ? 'bg-black/90 border-gray-900' : 'bg-transparent border-transparent'
+      }`}>
+        <div className={`max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between transition-all duration-300 ${
+          scrolled ? 'h-14' : 'h-20'
+        }`}>
+          <span className={`font-black tracking-tight transition-all duration-300 ${
+            scrolled ? 'text-lg' : 'text-4xl sm:text-5xl'
+          }`}>
             HACKATHON<span className="text-accent-yellow">HERO</span>
           </span>
           <div className="flex items-center gap-3">
@@ -109,7 +122,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDashboard, isPr
       </nav>
 
       {/* ── Hero ── */}
-      <section className="pt-32 pb-20 px-4 sm:px-6 relative overflow-hidden">
+      <section className="pt-40 pb-20 px-4 sm:px-6 relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(212,255,0,0.05)_0%,transparent_60%)] pointer-events-none" />
         <div className="max-w-5xl mx-auto text-center relative">
           <div className="inline-flex items-center gap-2 border border-gray-800 px-4 py-2 text-xs font-mono text-accent-yellow tracking-widest mb-8">
