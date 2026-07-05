@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Save } from 'lucide-react';
+import { Save, Trophy } from 'lucide-react';
 import { useToast } from './components/Toast';
 import { RulesParser } from './components/RulesParser';
 import { IdeaGenerator } from './components/IdeaGenerator';
@@ -667,8 +667,9 @@ function HackathonWizard() {
               <div className="flex items-center justify-between mb-4 gap-4">
                 <button
                   onClick={() => setView('landing')}
-                  className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight hover:opacity-80 transition-opacity"
+                  className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight hover:opacity-80 transition-opacity flex items-center gap-2 sm:gap-3"
                 >
+                  <Trophy className="text-accent-yellow flex-shrink-0" size={32} strokeWidth={2} />
                   <span className="text-white header-text">HACKATHON</span>
                   <span className="text-accent-yellow header-text">HERO</span>
                 </button>

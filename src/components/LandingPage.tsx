@@ -94,9 +94,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDashboard, isPr
           style={{ height: scrolled ? '56px' : '80px' }}
         >
           <span
-            className="font-black tracking-tight transition-all duration-300"
+            className="font-black tracking-tight transition-all duration-300 flex items-center gap-2"
             style={{ fontSize: scrolled ? '1.125rem' : '2.5rem', lineHeight: 1 }}
           >
+            <Trophy
+              className="text-accent-yellow flex-shrink-0 transition-all duration-300"
+              style={{ width: scrolled ? '1.125rem' : '2rem', height: scrolled ? '1.125rem' : '2rem' }}
+              strokeWidth={2}
+            />
             HACKATHON<span className="text-accent-yellow header-text">HERO</span>
           </span>
           <div className="flex items-center gap-3">
@@ -403,11 +408,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDashboard, isPr
             </div>
 
             {/* FAQ bullets */}
-            <div className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-6 text-center">
+            <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 gap-6 text-center max-w-md mx-auto sm:max-w-none">
               {[
                 { icon: Clock, label: 'Instant Access', sub: 'Unlocked immediately after payment' },
                 { icon: Users, label: 'Lifetime Updates', sub: 'Included with Lifetime Pass' },
-                { icon: Trophy, label: 'Win Guarantee', sub: 'Better odds or your money back*' },
               ].map(({ icon: Icon, label, sub }) => (
                 <div key={label} className="flex flex-col items-center gap-2">
                   <Icon size={20} className="text-accent-yellow" strokeWidth={1.5} />
@@ -416,7 +420,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDashboard, isPr
                 </div>
               ))}
             </div>
-            <p className="text-xs text-gray-700 text-center mt-4">*Not a real guarantee. Just vibe.</p>
           </div>
         </section>
       )}

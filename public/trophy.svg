@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!-- Cup body -->
+  <path d="M9 4h14v2c0 5.523-3.134 10.22-7.5 11.625V21h3a1 1 0 010 2h-9a1 1 0 010-2h3v-3.375C8.134 16.22 5 11.523 5 6V4z" fill="#d4ff00"/>
+  <!-- Left handle -->
+  <path d="M9 6H5v3a4 4 0 004 4V6z" fill="#d4ff00"/>
+  <!-- Right handle -->
+  <path d="M23 6h4v3a4 4 0 01-4 4V6z" fill="#d4ff00"/>
+  <!-- Base -->
+  <rect x="10" y="23" width="12" height="2.5" rx="1.25" fill="#d4ff00"/>
+  <rect x="8" y="25.5" width="16" height="2.5" rx="1.25" fill="#d4ff00"/>
+</svg>
